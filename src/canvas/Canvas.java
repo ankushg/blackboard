@@ -16,6 +16,7 @@ import java.awt.event.MouseMotionListener;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JToggleButton;
+
 import javax.swing.SwingUtilities;
 
 /**
@@ -132,7 +133,6 @@ public class Canvas extends JPanel {
             g.setColor(Color.BLACK);
             g.drawLine(x1, y1, x2, y2);
         }
-
         
         // IMPORTANT!  every time we draw on the internal drawing buffer, we
         // have to notify Swing to repaint this component on the screen.
