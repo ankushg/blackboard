@@ -40,17 +40,11 @@ import javax.swing.SwingUtilities;
  * This is a JFrame, not a JPanel. There is a JPanel subclass inside: whiteboardPanel
  * 
  * 
- * TODO: Make an interface with the following features:
- * -Freehand
- * -Change color
- * -Change width
- * -Draw lines
- * -Draw shapes (fill/empty)
- * -Erase
- * -Clear screen (with warning before doing so)
  * 
  * TODO: Implement message passing protocol for each stroke
  * TODO: Change interface to use icons instead of text
+ * TODO: Make interface more user friendly
+ * TODO: Fix the stuff that happens on the size after resizing the window
  * 
  * 
  */
@@ -289,7 +283,6 @@ public class ClientCanvas extends JFrame{
      * The class which contains the actual drawing surface for 
      * the Client Canvas
      * 
-     * TODO: Fix the shape drawing with negative points, add fill methods
      */
     private class ClientCanvasPanel extends JPanel{
     	
@@ -325,37 +318,7 @@ public class ClientCanvas extends JFrame{
 	        	g.drawLine(X1, Y1, X2, Y2);
 	        }
 	        else if (getCurrentTool().equals(shapeModeButton)){
-
-	        	if (X1>X2) {
-		        	int temp = X1;
-		        	X1 = X2;
-		        	X2 = temp;
-
-		        }
-		        if (Y1>Y2) {
-		        	int temp = Y1;
-		        	Y1 = Y2;
-		        	Y2 = temp;
-
-		        }
-	        	g.drawImage(drawingBuffer, 0, 0, null);
-	        	g.setColor(getColor());
-		        ((Graphics2D) g).setStroke(getStroke());
-		        if (getSelectedShape().equals("Square")){
-		        	int side = Math.min(X2-X1, Y2-Y1);
-		        	g.drawRect(Math.min(X1,X2), Math.min(Y1,Y2), side, side); 
-		        }
-		        else if (getSelectedShape().equals("Rectangle")){
-		        	g.drawRect(X1, Y1, X2-X1, Y2-Y1); 
-		        }
-		        else if (getSelectedShape().equals("Circle")){
-		        	int side = Math.max(Math.min(X2-X1, Y2-Y1),Y2-Y1);
-		        	g.drawOval(X1, Y1, side, side); 
-		        }
-		        else if (getSelectedShape().equals("Oval")){
-		        	g.drawOval(X1, Y1, X2-X1, Y2-Y1); 
-		        	
-		        }
+	        	drawShapeSegment(X1, Y1, X2, Y2, (Graphics2D) g);
 	        }
 	    }
 	    
@@ -369,9 +332,13 @@ public class ClientCanvas extends JFrame{
 	    
 	    /*
 	     * Make the drawing buffer entirely white.
+	     * 
+	     * g is an optional argument, it will default to using drawingBuffer.getGraphics()
 	     */
-	    private void fillWithWhite() {
-	        final Graphics2D g = (Graphics2D) drawingBuffer.getGraphics();
+	    private void fillWithWhite(Graphics2D g) {
+	        if (g==null){
+	        	g = (Graphics2D) drawingBuffer.getGraphics();
+	        }
 	
 	        g.setColor(Color.WHITE);
 	        g.fillRect(0,  0,  getWidth(), getHeight());
@@ -379,6 +346,9 @@ public class ClientCanvas extends JFrame{
 	        // IMPORTANT!  every time we draw on the internal drawing buffer, we
 	        // have to notify Swing to repaint this component on the screen.
 	        this.repaint();
+	    }
+	    private void fillWithWhite() {
+	    	fillWithWhite(null);
 	    }
 	    
 	    /*
@@ -414,49 +384,115 @@ public class ClientCanvas extends JFrame{
 	        // IMPORTANT!  every time we draw on the internal drawing buffer, we
 	        // have to notify Swing to repaint this component on the screen.
 	        this.repaint();
+	        
 	    }
 	    
 	    /*
-	     * Draw a line between two points (x1, y1) and (x2, y2), specified in
-	     * pixels relative to the upper-left corner of the drawing buffer, but does not
-	     * finalize the line (the line should be finalized in a mouseReleased event)
+	     * Draw a shape between two points (x1, y1) and (x2, y2), specified in
+	     * pixels relative to the upper-left corner of the drawing buffer
+	     * 
+	     * g is an optional argument, it will default to using drawingBuffer.getGraphics()
 	     * 
 	     * Uses information from the selected color and width
 	     */
-	    private void drawShapeSegment(int x1, int y1, int x2, int y2) {
-	    	Graphics2D g = (Graphics2D) drawingBuffer.getGraphics();
+	    private void drawShapeSegment(int x1, int y1, int x2, int y2, Graphics2D g) {
+	    	boolean repaint = false;
+	    	if (g==null){
+	    		g = (Graphics2D) drawingBuffer.getGraphics();
+	    		repaint = true;
+	    	}
 	    	
+	    	g.drawImage(drawingBuffer, 0, 0, null);
+	    	boolean fillShape = shapeFilledButton.isSelected();
         	g.setColor(getColor());
-	        ((Graphics2D) g).setStroke(getStroke());
+	        g.setStroke(getStroke());
 	        
-	        if (x1>x2) {
-	        	int temp = x1;
-	        	x1 = x2;
-	        	x2 = temp;
-	        }
-	        if (y1>y2) {
-	        	int temp = y1;
-	        	y1 = y2;
-	        	y2 = temp;
-	        }
-	        if (getSelectedShape().equals("Square")){
-	        	int side = Math.min(x2-x1, y2-y1);
-	        	g.drawRect(x1, y1, side, side); 
-	        }
-	        else if (getSelectedShape().equals("Rectangle")){
-	        	g.drawRect(x1, y1, x2-x1, y2-y1); 
-	        }
-	        else if (getSelectedShape().equals("Circle")){
-	        	int side = Math.min(x2-x1, y2-y1);
-	        	g.drawOval(x1, y1, side, side); 
+	        
+	        int xOrigin = Math.min(x2, x1);
+	        int yOrigin = Math.min(y2, y1);
+	        int xLength = Math.abs(x2-x1);
+	        int yLength = Math.abs(y2-y1);
+	        
+	        if (getSelectedShape().equals("Rectangle")){
+	        	if (fillShape){
+	        		g.fillRect(xOrigin, yOrigin, xLength, yLength);
+	        	}
+	        	else {
+	        		g.drawRect(xOrigin, yOrigin, xLength, yLength); 
+	        	}
 	        }
 	        else if (getSelectedShape().equals("Oval")){
-	        	g.drawOval(x1, y1, x2-x1, y2-y1); 
+	        	if (fillShape){
+	        		g.fillOval(xOrigin, yOrigin, xLength, yLength);
+	        	}
+	        	else {
+	        		g.drawOval(xOrigin, yOrigin, xLength, yLength);
+	        	}
+	        }
+	        
+	        // make changes to the points to force equal sides
+	        if (x2>x1&&y2>y1){// 4th quadrant
+	        	if (xLength<=yLength){
+	        		yLength = xLength;
+	        	}
+	        	else{
+	        		xLength = yLength;
+	        	}
+	        }
+	        else if (x2<x1&&y2>y1){// 3rd quadrant
+	        	if (xLength<=yLength){
+	        		yLength = xLength;
+	        	}
+	        	else{
+	        		xOrigin = x1-yLength;
+	        		xLength = yLength;
+	        	}
+	        }
+	        else if (x2<x1&&y2<y1){// 2nd quadrant
+	        	if (xLength<=yLength){
+	        		yOrigin = y1-xLength;
+	        		yLength = xLength;
+	        	}
+	        	else{
+	        		xOrigin = x1-yLength;
+	        		xLength = yLength;
+	        	}
+	        }
+	        else if (x2>x1&&y2<y1){// 1st quadrant
+	        	if (xLength<=yLength){
+	        		yOrigin = y1-xLength;
+	        		yLength = xLength;
+	        	}
+	        	else{
+	        		xLength = yLength;
+	        	}
+	        }
+	        if (getSelectedShape().equals("Square")){
+	        	if (fillShape){
+	        		g.fillRect(xOrigin, yOrigin, xLength, yLength);
+	        	}
+	        	else {
+	        		g.drawRect(xOrigin, yOrigin, xLength, yLength); 
+	        	}
+	        }
+	        
+	        else if (getSelectedShape().equals("Circle")){
+	        	if (fillShape){
+	        		g.fillOval(xOrigin, yOrigin, xLength, yLength);
+	        	}
+	        	else {
+	        		g.drawOval(xOrigin, yOrigin, xLength, yLength);
+	        	}
 	        }
 	        
 	        // IMPORTANT!  every time we draw on the internal drawing buffer, we
 	        // have to notify Swing to repaint this component on the screen.
-	        this.repaint();
+	        if (repaint){
+	        	this.repaint();
+	        };
+	    }
+	    private void drawShapeSegment(int x1, int y1, int x2, int y2){
+	    	drawShapeSegment(x1, y1, x2, y2, null);
 	    }
 	    
 	    /*
@@ -507,8 +543,10 @@ public class ClientCanvas extends JFrame{
 	         * draw a line segment.
 	         */
 	        public void mouseDragged(MouseEvent e) {
-	            int x = e.getX();
-	            int y = e.getY();
+	        	// Take the min to prevent from drawing off of the screen
+	            int x = Math.min(e.getX(),getWidth());
+	            int y = Math.min(e.getY(),getHeight());
+	            
 	            if (pencilModeButton.equals(getCurrentTool())){
 		            drawPencilSegment(lastX, lastY, x, y);
 		            lastX = x;
@@ -528,8 +566,10 @@ public class ClientCanvas extends JFrame{
 	        }
 	        
 	        public void mouseReleased(MouseEvent e) { 
-	        	int x = e.getX();
-	            int y = e.getY();
+	        	// Take the min to prevent from drawing off of the screen
+	            int x = Math.min(e.getX(),getWidth());
+	            int y = Math.min(e.getY(),getHeight());
+	            
 	            if (pencilModeButton.equals(getCurrentTool())){
 		            drawPencilSegment(lastX, lastY, lastX, lastY);
 	            }
@@ -542,6 +582,7 @@ public class ClientCanvas extends JFrame{
 	            if (shapeModeButton.equals(getCurrentTool())){
 	            	drawShapeSegment(lastX, lastY, x, y);
 	            }
+	            X1=X2=Y1=Y2=Integer.MAX_VALUE;// set these to be arbitrarily off of the drawing screen
 	        }
 	
 	        // Ignore all these other mouse events.
