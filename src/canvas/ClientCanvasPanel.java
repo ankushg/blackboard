@@ -1,6 +1,5 @@
 package canvas;
 
-import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -9,9 +8,7 @@ import java.awt.Image;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
-import java.awt.image.BufferedImage;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import javax.swing.JPanel;
 
@@ -21,7 +18,7 @@ import javax.swing.JPanel;
  * user to erase as well. The canvas communicates with a ServerCanvas
  * to allow collaboration on a whiteboard among multiple users
  * 
- * TODO: Implement message passing protocol for each stroke
+ * TODO: Write tests for message creation
  * 
  * @author jlmart88
  *
@@ -35,21 +32,21 @@ public class ClientCanvasPanel extends JPanel{
 		private int drawingCounter = 0;
 		
 		// Image where the user's drawing is stored
-		// this Image is only ever updated by messages received from the server
+		// this Image is only updated by messages received from the server
 	    private Image drawingBuffer;
 	    
 	    // this is a list of recent commands done by the user
 	    // this list will be iterated through every time a drawing command occurs
 	    //		and will be removed from whenever a response is received notifying 
 	    //		that the drawing command has been processed
-	    private ArrayList<HashMap<String,Image>> recentDrawings;
+	    private ArrayList<DrawingLayer> recentDrawings;
 	    
 		private final ClientCanvas canvas;
     	private int X1,X2,Y1,Y2;
     	
     	public ClientCanvasPanel(int width, int height, ClientCanvas canvas) {
     		this.canvas = canvas;
-    		recentDrawings = new ArrayList<HashMap<String,Image>>();
+    		recentDrawings = new ArrayList<DrawingLayer>();
             this.setPreferredSize(new Dimension(width, height));
             addDrawingController();
             // note: we can't call makeDrawingBuffer here, because it only
@@ -62,30 +59,27 @@ public class ClientCanvasPanel extends JPanel{
 	     */
 	    @Override
 	    public void paintComponent(Graphics g) {
-	        // If this is the first time paintComponent() is being called,
-	        // make our drawing buffer.
 	    	
+	        // If this is the first time paintComponent() is being called,
+	        // make our drawing buffer
 	        if (drawingBuffer == null) {
 	            makeDrawingBuffer();
 	        }
 	        
+	        // draw the buffer which has been updated by the server
 	        g.drawImage(drawingBuffer, 0, 0, null);
 	        
-	        for (HashMap<String,Image> drawing: recentDrawings){
-	        	for (String drawingID: drawing.keySet()){
-	        		g.drawImage(drawing.get(drawingID), 0, 0, null);
-	        	}
+	        // iterate through and draw all of the client drawings 
+	        // that haven't been processed by the server yet
+	        for (DrawingLayer drawing: recentDrawings){
+	        	g.drawImage(drawing.getImage(), 0, 0, null);
 	        }
 	        
-	        // Copy the drawing buffer to the screen.
-	        if (canvas.getCurrentTool().equals(ClientCanvas.ERASE_BUTTON)||canvas.getCurrentTool().equals(ClientCanvas.PENCIL_BUTTON)){
-
-	        }
-	        else if (canvas.getCurrentTool().equals(ClientCanvas.LINE_BUTTON)){
-	        	
-	        	g.setColor(canvas.getColor());
-		        ((Graphics2D) g).setStroke(canvas.getStroke());
-	        	g.drawLine(X1, Y1, X2, Y2);
+	        // if we are in line/shape mode, draw on top of everything else 
+	        // using the coordinates being updated by the mouse listener, since the
+	        // line/shape has not been finalized yet
+	        if (canvas.getCurrentTool().equals(ClientCanvas.LINE_BUTTON)){
+	        	drawPencilSegment(X1, Y1, X2, Y2, (Graphics2D) g);
 	        }
 	        else if (canvas.getCurrentTool().equals(ClientCanvas.SHAPE_BUTTON)){
 	        	drawShapeSegment(X1, Y1, X2, Y2, (Graphics2D) g);
@@ -93,7 +87,7 @@ public class ClientCanvasPanel extends JPanel{
 	    }
 	    
 	    /*
-	     * Make the drawing buffer and draw some starting content for it.
+	     * Make the drawing buffer and fill it with white
 	     */
 	    private void makeDrawingBuffer() {
 	        drawingBuffer = createImage(canvas.getWidth(), canvas.getHeight());
@@ -115,12 +109,11 @@ public class ClientCanvasPanel extends JPanel{
 	    }
 	    
 	    /*
-	     * Processes a click of the erase all button 
+	     * Process a click of the erase all button 
 	     */
 	    public synchronized void eraseAll() {
-	    	String currentDrawingID = createNewDrawing();
-	    	fillWithWhite((Graphics2D) recentDrawings.get(recentDrawings.size()-1).get(currentDrawingID).getGraphics());		
-	    	
+	    	DrawingLayer currentDrawing = createNewDrawing();
+	    	fillWithWhite((Graphics2D) currentDrawing.getImage().getGraphics());			
 	    };
 	    
 	    /*
@@ -145,7 +138,7 @@ public class ClientCanvasPanel extends JPanel{
 	     * pixels relative to the upper-left corner of the drawing buffer, but does not
 	     * finalize the draw (the draw should be finalized in a mouseReleased event)
 	     * 
-	     * Uses information from the selected color and width
+	     * Uses information from the currently selected color and width in the GUI
 	     */
 	    private void drawTempSegment(int x1, int y1, int x2, int y2) {
 	        X1=x1;
@@ -162,7 +155,7 @@ public class ClientCanvasPanel extends JPanel{
 	     * Draw a shape between two points (x1, y1) and (x2, y2), specified in
 	     * pixels relative to the upper-left corner of the drawing buffer
 	     * 
-	     * Uses information from the selected color and width
+	     * Uses information from the currently selected color and width in the GUI
 	     */
 	    private void drawShapeSegment(int x1, int y1, int x2, int y2, Graphics2D g) {
 	    	
@@ -274,7 +267,7 @@ public class ClientCanvasPanel extends JPanel{
 	    }
 	    
 	    /*
-	     * Add the mouse listener that supports the user's freehand drawing.
+	     * Add the mouse listener that supports the user's drawing.
 	     */
 	    private void addDrawingController() {
 	        DrawingController controller = new DrawingController();
@@ -283,19 +276,17 @@ public class ClientCanvasPanel extends JPanel{
 	    }
 	    
 	    /**
-	     * Adds a new Drawing to the list of currentDrawings, and returns the ID
-	     * to access it by
+	     * Adds a new DrawingLayer to the list of currentDrawings, and
+	     * returns it
 	     * 
-	     * @return String of the Id of the drawing
+	     * @return DrawingLayer the drawing just added
 	     */
-	    private synchronized String createNewDrawing() {
+	    private synchronized DrawingLayer createNewDrawing() {
 	    	drawingCounter += 1;
-	    	Image thisDrawingImage = new BufferedImage(getWidth(),getHeight(),BufferedImage.TYPE_INT_ARGB);
-            String thisDrawingID = canvas.getUserID()+drawingCounter;
-            HashMap<String,Image> thisDrawing = new HashMap<String,Image>();
-            thisDrawing.put(thisDrawingID, thisDrawingImage);
-            recentDrawings.add(thisDrawing);
-	    	return thisDrawingID;
+	    	recentDrawings.add(new DrawingLayer(canvas.getUserID()+drawingCounter, this.getWidth(), 
+	    			this.getHeight(), canvas.getCurrentTool(), canvas.getSelectedShape()));
+            
+	    	return recentDrawings.get(recentDrawings.size()-1);
 	    }
 	    
 	    /*
@@ -305,8 +296,7 @@ public class ClientCanvasPanel extends JPanel{
 	        // store the coordinates of the last mouse event, so we can
 	        // draw a line segment from that last point to the point of the next mouse event.
 	        private int lastX, lastY;
-	        private String currentDrawingID;
-	        
+	        private DrawingLayer currentDrawing;     
 	
 	        /*
 	         * When mouse button is pressed down, start drawing.
@@ -314,33 +304,38 @@ public class ClientCanvasPanel extends JPanel{
 	        public void mousePressed(MouseEvent e) {
 	            lastX = e.getX();
 	            lastY = e.getY();
-	            currentDrawingID = createNewDrawing();
+	            currentDrawing = createNewDrawing();
+	            currentDrawing.addPoint(lastX, lastY);
 	        }
 	
 	        /*
 	         * When mouse moves while a button is pressed down,
-	         * draw a line segment.
+	         * draw depending on what tool is selected.
 	         */
 	        public void mouseDragged(MouseEvent e) {
 	        	// Take the min to prevent from drawing off of the screen
 	            int x = Math.min(e.getX(),getWidth());
 	            int y = Math.min(e.getY(),getHeight());
-	            Graphics2D currentDrawingGraphics = (Graphics2D) recentDrawings.get(recentDrawings.size()-1).get(currentDrawingID).getGraphics();
+	            
+	            // Get the current drawing layer
+	            Graphics2D currentDrawingGraphics = (Graphics2D) currentDrawing.getImage().getGraphics();
 	            
 	            if (ClientCanvas.PENCIL_BUTTON.equals(canvas.getCurrentTool())){
 		            drawPencilSegment(lastX, lastY, x, y, currentDrawingGraphics);
 		            lastX = x;
 		            lastY = y;
+		            currentDrawing.addPoint(x, y);
 	            }
-	            if (ClientCanvas.ERASE_BUTTON.equals(canvas.getCurrentTool())){
+	            else if (ClientCanvas.ERASE_BUTTON.equals(canvas.getCurrentTool())){
 	            	drawEraseSegment(lastX, lastY, x, y, currentDrawingGraphics);
 		            lastX = x;
 		            lastY = y;
+		            currentDrawing.addPoint(x, y);
 	            }
-	            if (ClientCanvas.LINE_BUTTON.equals(canvas.getCurrentTool())){
+	            else if (ClientCanvas.LINE_BUTTON.equals(canvas.getCurrentTool())){
 	            	drawTempSegment(lastX, lastY, x, y);
 	            }
-	            if (ClientCanvas.SHAPE_BUTTON.equals(canvas.getCurrentTool())){
+	            else if (ClientCanvas.SHAPE_BUTTON.equals(canvas.getCurrentTool())){
 	            	drawTempSegment(lastX, lastY, x, y);
 	            }
 	        }
@@ -349,22 +344,24 @@ public class ClientCanvasPanel extends JPanel{
 	        	// Take the min to prevent from drawing off of the screen
 	            int x = Math.min(e.getX(),getWidth());
 	            int y = Math.min(e.getY(),getHeight());
-	            Graphics2D currentDrawingGraphics = (Graphics2D) recentDrawings.get(recentDrawings.size()-1).get(currentDrawingID).getGraphics();
 	            
-	            
+	            // Get the current drawing layer
+	            Graphics2D currentDrawingGraphics = (Graphics2D) currentDrawing.getImage().getGraphics();
+	     	            
 	            if (ClientCanvas.PENCIL_BUTTON.equals(canvas.getCurrentTool())){
 		            drawPencilSegment(lastX, lastY, lastX, lastY, currentDrawingGraphics);
 	            }
-	            if (ClientCanvas.ERASE_BUTTON.equals(canvas.getCurrentTool())){
+	            else if (ClientCanvas.ERASE_BUTTON.equals(canvas.getCurrentTool())){
 	            	drawEraseSegment(lastX, lastY, lastX, lastY, currentDrawingGraphics);
 	            }
-	            if (ClientCanvas.LINE_BUTTON.equals(canvas.getCurrentTool())){
+	            else if (ClientCanvas.LINE_BUTTON.equals(canvas.getCurrentTool())){
 	            	drawPencilSegment(lastX, lastY, x, y, currentDrawingGraphics);
 	            }
-	            if (ClientCanvas.SHAPE_BUTTON.equals(canvas.getCurrentTool())){
+	            else if (ClientCanvas.SHAPE_BUTTON.equals(canvas.getCurrentTool())){
 	            	drawShapeSegment(lastX, lastY, x, y, currentDrawingGraphics);
 	            }
-	            X1=X2=Y1=Y2=Integer.MAX_VALUE;// set these to be arbitrarily off of the drawing screen
+	            currentDrawing.addPoint(x, y);
+	            X1=X2=Y1=Y2=Integer.MAX_VALUE;// set these to be arbitrarily off of the drawing screen once weve finalized the drawing
 	        }
 	
 	        // Ignore all these other mouse events.
