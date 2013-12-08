@@ -1,20 +1,29 @@
 package canvas;
 
+import java.awt.BasicStroke;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Queue;
+
+import model.Board;
+import model.Client;
 
 public class WhiteboardServer {
 
     private ServerSocket serverSocket;
     private boolean debug;
+    
+    private List<Board> boards;
+    private List<WhiteboardThread> clientThreads;
 
     /**
      * Make a WhiteboardServer that listens for connections on port.
@@ -110,14 +119,30 @@ public class WhiteboardServer {
         while (true) {
             // block until a client connects
             final Socket socket = serverSocket.accept();
-            Thread thread = new WhiteboardThread(socket);
+            final Client newClient = new Client("", 0, new BasicStroke(10));
+            WhiteboardThread thread = new WhiteboardThread(socket, newClient);
+            clientThreads.add(thread);
             // handle the client
             thread.start();
         }
     }
+    
+    private List<WhiteboardThread> getCoworkers(int mapId){
+        List<WhiteboardThread> list = new ArrayList<>();
+        for(WhiteboardThread w : clientThreads){
+            if(w.client.getCurrentBoardId() == mapId){
+                list.add(w);
+            }
+        }
+        return list;
+    }
 
+    
+    
     private class WhiteboardThread extends Thread {
-        private WhiteboardThread(final Socket socket) {
+        private final Client client;
+
+        private WhiteboardThread(final Socket socket, final Client client) {
             super(new Runnable() {
                 /**
                  * Handle a single client connection. Returns when client
@@ -132,7 +157,7 @@ public class WhiteboardServer {
                 private void handleConnection(Socket socket) throws IOException {
                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-                    // TODO output welcom message to client
+                    // TODO output welcome message to client
                     out.println("");
                     try {
                         for (String line = in.readLine(); line != null; line = in.readLine()) {
@@ -190,8 +215,10 @@ public class WhiteboardServer {
                         disconnectSocket();
                     }
                 }
-
             });
+            
+            this.client = client;
+
         }
     }
 
