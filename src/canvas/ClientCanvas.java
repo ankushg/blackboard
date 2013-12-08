@@ -39,19 +39,22 @@ import javax.swing.SwingUtilities;
  * to allow collaboration on a whiteboard among multiple users
  * 
  * Differences from Canvas:
- * This is a JFrame, mmanaging the GUI surrounding the whiteboard. The ClientCanvasPanel is a JPanel.
+ * This is a JFrame, managing the GUI surrounding the whiteboard. The ClientCanvasPanel is a JPanel.
  * 
  * 
- * TODO: Implement message passing protocol for each stroke
  * TODO: Change interface to use icons instead of text
  * TODO: Make interface more user friendly
  * TODO: Fix the stuff that happens on the size after resizing the window
+ * TODO: Get the userID info from the ClientGUI after establishing a connection
  * 
  * 
  */
 public class ClientCanvas extends JFrame{
     
     private final ClientCanvasPanel whiteboardPanel;
+    
+    // WARNING: Change this once we establish a user id protocol
+    private final String userID = "fillInUserID";
     
     // whiteboard tools
     private final JToggleButton pencilModeButton;
@@ -65,7 +68,13 @@ public class ClientCanvas extends JFrame{
     private final JLabel currentColorLabel;
     private final JButton eraseAllButton;
     
-    public final static String[] SHAPE_OPTIONS = {"Square", "Rectangle", "Circle", "Oval"};
+    
+    public final static String SQUARE = "Square";
+    public final static String RECTANGLE = "Rectangle";
+    public final static String CIRCLE = "Circle";
+    public final static String OVAL = "Oval";
+    
+    public final static String[] SHAPE_OPTIONS = {SQUARE, RECTANGLE, CIRCLE, OVAL};
     public final static String[] WIDTH_OPTIONS = {"5px", "10px", "20px"};
     public final static String PENCIL_BUTTON = "pencilModeButton";
     public final static String ERASE_BUTTON = "eraseModeButton";
@@ -209,7 +218,7 @@ public class ClientCanvas extends JFrame{
         					    options,
         					    options[0]);
         		if (n==0){
-        			whiteboardPanel.fillWithWhite();
+        			whiteboardPanel.eraseAll();
         		}
         		
         	}
@@ -294,6 +303,15 @@ public class ClientCanvas extends JFrame{
      */
     public boolean isShapeFilled(){
     	return shapeFilledButton.isSelected();
+    }
+    
+    /**
+     * Returns a String representing the userID of the client
+     * 
+     * @return String object representing the userID of the client
+     */
+    public String getUserID(){
+    	return userID;
     }
     
     /*

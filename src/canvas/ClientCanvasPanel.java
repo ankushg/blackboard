@@ -1,5 +1,6 @@
 package canvas;
 
+import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -8,6 +9,8 @@ import java.awt.Image;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import javax.swing.JPanel;
@@ -19,6 +22,7 @@ import javax.swing.JPanel;
  * to allow collaboration on a whiteboard among multiple users
  * 
  * TODO: Implement message passing protocol for each stroke
+ * 
  * @author jlmart88
  *
  */
@@ -26,22 +30,26 @@ public class ClientCanvasPanel extends JPanel{
 
 		private static final long serialVersionUID = 1L;
 		
+		// this counter is used to create a new drawing ID
+		// for each new drawing
+		private int drawingCounter = 0;
 		
-		// image where the user's drawing is stored
-		// this image is only ever updated by messages received from the server
+		// Image where the user's drawing is stored
+		// this Image is only ever updated by messages received from the server
 	    private Image drawingBuffer;
 	    
-	    // this is a map of recent commands done by the user
-	    // this map will be iterated through every time a drawing command occurs
+	    // this is a list of recent commands done by the user
+	    // this list will be iterated through every time a drawing command occurs
 	    //		and will be removed from whenever a response is received notifying 
 	    //		that the drawing command has been processed
-	    private HashMap<String,Image> recentDrawings;
+	    private ArrayList<HashMap<String,Image>> recentDrawings;
 	    
 		private final ClientCanvas canvas;
     	private int X1,X2,Y1,Y2;
     	
     	public ClientCanvasPanel(int width, int height, ClientCanvas canvas) {
     		this.canvas = canvas;
+    		recentDrawings = new ArrayList<HashMap<String,Image>>();
             this.setPreferredSize(new Dimension(width, height));
             addDrawingController();
             // note: we can't call makeDrawingBuffer here, because it only
@@ -56,16 +64,25 @@ public class ClientCanvasPanel extends JPanel{
 	    public void paintComponent(Graphics g) {
 	        // If this is the first time paintComponent() is being called,
 	        // make our drawing buffer.
+	    	
 	        if (drawingBuffer == null) {
 	            makeDrawingBuffer();
 	        }
 	        
+	        g.drawImage(drawingBuffer, 0, 0, null);
+	        
+	        for (HashMap<String,Image> drawing: recentDrawings){
+	        	for (String drawingID: drawing.keySet()){
+	        		g.drawImage(drawing.get(drawingID), 0, 0, null);
+	        	}
+	        }
+	        
 	        // Copy the drawing buffer to the screen.
 	        if (canvas.getCurrentTool().equals(ClientCanvas.ERASE_BUTTON)||canvas.getCurrentTool().equals(ClientCanvas.PENCIL_BUTTON)){
-	        	g.drawImage(drawingBuffer, 0, 0, null);
+
 	        }
 	        else if (canvas.getCurrentTool().equals(ClientCanvas.LINE_BUTTON)){
-	        	g.drawImage(drawingBuffer, 0, 0, null);
+	        	
 	        	g.setColor(canvas.getColor());
 		        ((Graphics2D) g).setStroke(canvas.getStroke());
 	        	g.drawLine(X1, Y1, X2, Y2);
@@ -80,19 +97,15 @@ public class ClientCanvasPanel extends JPanel{
 	     */
 	    private void makeDrawingBuffer() {
 	        drawingBuffer = createImage(canvas.getWidth(), canvas.getHeight());
-	        fillWithWhite();
+	        fillWithWhite((Graphics2D) drawingBuffer.getGraphics());
 	    }
 	    
 	    /*
-	     * Make the drawing buffer entirely white.
+	     * Make the graphics entirely white.
 	     * 
-	     * g is an optional argument, it will default to using drawingBuffer.getGraphics()
 	     */
-	    public void fillWithWhite(Graphics2D g) {
-	        if (g==null){
-	        	g = (Graphics2D) drawingBuffer.getGraphics();
-	        }
-	
+	    private void fillWithWhite(Graphics2D g) {
+	    	
 	        g.setColor(Color.WHITE);
 	        g.fillRect(0,  0,  getWidth(), getHeight());
 	        
@@ -100,9 +113,15 @@ public class ClientCanvasPanel extends JPanel{
 	        // have to notify Swing to repaint this component on the screen.
 	        this.repaint();
 	    }
-	    public void fillWithWhite() {
-	    	fillWithWhite(null);
-	    }
+	    
+	    /*
+	     * Processes a click of the erase all button 
+	     */
+	    public synchronized void eraseAll() {
+	    	String currentDrawingID = createNewDrawing();
+	    	fillWithWhite((Graphics2D) recentDrawings.get(recentDrawings.size()-1).get(currentDrawingID).getGraphics());		
+	    	
+	    };
 	    
 	    /*
 	     * Draw a line between two points (x1, y1) and (x2, y2), specified in
@@ -110,9 +129,8 @@ public class ClientCanvasPanel extends JPanel{
 	     * 
 	     * Uses information from the selected color and width
 	     */
-	    private void drawPencilSegment(int x1, int y1, int x2, int y2) {
-	        Graphics2D g = (Graphics2D) drawingBuffer.getGraphics();
-	        
+	    private void drawPencilSegment(int x1, int y1, int x2, int y2, Graphics2D g) {
+	    	
 	        g.setColor(canvas.getColor());
 	        g.setStroke(canvas.getStroke());
 	        g.drawLine(x1, y1, x2, y2);
@@ -144,18 +162,10 @@ public class ClientCanvasPanel extends JPanel{
 	     * Draw a shape between two points (x1, y1) and (x2, y2), specified in
 	     * pixels relative to the upper-left corner of the drawing buffer
 	     * 
-	     * g is an optional argument, it will default to using drawingBuffer.getGraphics()
-	     * 
 	     * Uses information from the selected color and width
 	     */
 	    private void drawShapeSegment(int x1, int y1, int x2, int y2, Graphics2D g) {
-	    	boolean repaint = false;
-	    	if (g==null){
-	    		g = (Graphics2D) drawingBuffer.getGraphics();
-	    		repaint = true;
-	    	}
 	    	
-	    	g.drawImage(drawingBuffer, 0, 0, null);
 	    	boolean fillShape = canvas.isShapeFilled();
         	g.setColor(canvas.getColor());
 	        g.setStroke(canvas.getStroke());
@@ -166,7 +176,7 @@ public class ClientCanvasPanel extends JPanel{
 	        int xLength = Math.abs(x2-x1);
 	        int yLength = Math.abs(y2-y1);
 	        
-	        if (canvas.getSelectedShape().equals("Rectangle")){
+	        if (canvas.getSelectedShape().equals(ClientCanvas.RECTANGLE)){
 	        	if (fillShape){
 	        		g.fillRect(xOrigin, yOrigin, xLength, yLength);
 	        	}
@@ -174,7 +184,7 @@ public class ClientCanvasPanel extends JPanel{
 	        		g.drawRect(xOrigin, yOrigin, xLength, yLength); 
 	        	}
 	        }
-	        else if (canvas.getSelectedShape().equals("Oval")){
+	        else if (canvas.getSelectedShape().equals(ClientCanvas.OVAL)){
 	        	if (fillShape){
 	        		g.fillOval(xOrigin, yOrigin, xLength, yLength);
 	        	}
@@ -220,7 +230,7 @@ public class ClientCanvasPanel extends JPanel{
 	        		xLength = yLength;
 	        	}
 	        }
-	        if (canvas.getSelectedShape().equals("Square")){
+	        if (canvas.getSelectedShape().equals(ClientCanvas.SQUARE)){
 	        	if (fillShape){
 	        		g.fillRect(xOrigin, yOrigin, xLength, yLength);
 	        	}
@@ -229,7 +239,7 @@ public class ClientCanvasPanel extends JPanel{
 	        	}
 	        }
 	        
-	        else if (canvas.getSelectedShape().equals("Circle")){
+	        else if (canvas.getSelectedShape().equals(ClientCanvas.CIRCLE)){
 	        	if (fillShape){
 	        		g.fillOval(xOrigin, yOrigin, xLength, yLength);
 	        	}
@@ -240,13 +250,11 @@ public class ClientCanvasPanel extends JPanel{
 	        
 	        // IMPORTANT!  every time we draw on the internal drawing buffer, we
 	        // have to notify Swing to repaint this component on the screen.
-	        if (repaint){
-	        	this.repaint();
-	        };
+	        
+	        this.repaint();
+	        
 	    }
-	    private void drawShapeSegment(int x1, int y1, int x2, int y2){
-	    	drawShapeSegment(x1, y1, x2, y2, null);
-	    }
+
 	    
 	    /*
 	     * Erases a line between two points (x1, y1) and (x2, y2), specified in
@@ -254,8 +262,7 @@ public class ClientCanvasPanel extends JPanel{
 	     * 
 	     * Uses information from the selected width
 	     */
-	    private void drawEraseSegment(int x1, int y1, int x2, int y2) {
-	        Graphics2D g = (Graphics2D) drawingBuffer.getGraphics();
+	    private void drawEraseSegment(int x1, int y1, int x2, int y2, Graphics2D g) {
 	        
 	        g.setColor(Color.white);
 	        g.setStroke(canvas.getStroke());
@@ -275,13 +282,31 @@ public class ClientCanvasPanel extends JPanel{
 	        addMouseMotionListener(controller);
 	    }
 	    
+	    /**
+	     * Adds a new Drawing to the list of currentDrawings, and returns the ID
+	     * to access it by
+	     * 
+	     * @return String of the Id of the drawing
+	     */
+	    private synchronized String createNewDrawing() {
+	    	drawingCounter += 1;
+	    	Image thisDrawingImage = new BufferedImage(getWidth(),getHeight(),BufferedImage.TYPE_INT_ARGB);
+            String thisDrawingID = canvas.getUserID()+drawingCounter;
+            HashMap<String,Image> thisDrawing = new HashMap<String,Image>();
+            thisDrawing.put(thisDrawingID, thisDrawingImage);
+            recentDrawings.add(thisDrawing);
+	    	return thisDrawingID;
+	    }
+	    
 	    /*
 	     * DrawingController handles the user's freehand drawing.
 	     */
 	    private class DrawingController implements MouseListener, MouseMotionListener {
 	        // store the coordinates of the last mouse event, so we can
 	        // draw a line segment from that last point to the point of the next mouse event.
-	        private int lastX, lastY; 
+	        private int lastX, lastY;
+	        private String currentDrawingID;
+	        
 	
 	        /*
 	         * When mouse button is pressed down, start drawing.
@@ -289,6 +314,7 @@ public class ClientCanvasPanel extends JPanel{
 	        public void mousePressed(MouseEvent e) {
 	            lastX = e.getX();
 	            lastY = e.getY();
+	            currentDrawingID = createNewDrawing();
 	        }
 	
 	        /*
@@ -299,14 +325,15 @@ public class ClientCanvasPanel extends JPanel{
 	        	// Take the min to prevent from drawing off of the screen
 	            int x = Math.min(e.getX(),getWidth());
 	            int y = Math.min(e.getY(),getHeight());
+	            Graphics2D currentDrawingGraphics = (Graphics2D) recentDrawings.get(recentDrawings.size()-1).get(currentDrawingID).getGraphics();
 	            
 	            if (ClientCanvas.PENCIL_BUTTON.equals(canvas.getCurrentTool())){
-		            drawPencilSegment(lastX, lastY, x, y);
+		            drawPencilSegment(lastX, lastY, x, y, currentDrawingGraphics);
 		            lastX = x;
 		            lastY = y;
 	            }
 	            if (ClientCanvas.ERASE_BUTTON.equals(canvas.getCurrentTool())){
-	            	drawEraseSegment(lastX, lastY, x, y);
+	            	drawEraseSegment(lastX, lastY, x, y, currentDrawingGraphics);
 		            lastX = x;
 		            lastY = y;
 	            }
@@ -322,18 +349,20 @@ public class ClientCanvasPanel extends JPanel{
 	        	// Take the min to prevent from drawing off of the screen
 	            int x = Math.min(e.getX(),getWidth());
 	            int y = Math.min(e.getY(),getHeight());
+	            Graphics2D currentDrawingGraphics = (Graphics2D) recentDrawings.get(recentDrawings.size()-1).get(currentDrawingID).getGraphics();
+	            
 	            
 	            if (ClientCanvas.PENCIL_BUTTON.equals(canvas.getCurrentTool())){
-		            drawPencilSegment(lastX, lastY, lastX, lastY);
+		            drawPencilSegment(lastX, lastY, lastX, lastY, currentDrawingGraphics);
 	            }
 	            if (ClientCanvas.ERASE_BUTTON.equals(canvas.getCurrentTool())){
-	            	drawEraseSegment(lastX, lastY, lastX, lastY);
+	            	drawEraseSegment(lastX, lastY, lastX, lastY, currentDrawingGraphics);
 	            }
 	            if (ClientCanvas.LINE_BUTTON.equals(canvas.getCurrentTool())){
-	            	drawPencilSegment(lastX, lastY, x, y);
+	            	drawPencilSegment(lastX, lastY, x, y, currentDrawingGraphics);
 	            }
 	            if (ClientCanvas.SHAPE_BUTTON.equals(canvas.getCurrentTool())){
-	            	drawShapeSegment(lastX, lastY, x, y);
+	            	drawShapeSegment(lastX, lastY, x, y, currentDrawingGraphics);
 	            }
 	            X1=X2=Y1=Y2=Integer.MAX_VALUE;// set these to be arbitrarily off of the drawing screen
 	        }
