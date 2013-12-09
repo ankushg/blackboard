@@ -8,6 +8,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -24,8 +25,8 @@ public class WhiteboardServer {
     @SuppressWarnings("unused")
     private boolean debug;
 
-    private Map<String, List<String>> boards = new HashMap<>();
-    private List<WhiteboardThread> clientThreads = new ArrayList<>();
+    private Map<String, List<String>> boards = Collections.synchronizedMap(new HashMap<String, List<String>>());
+    private List<WhiteboardThread> clientThreads = Collections.synchronizedList(new ArrayList<WhiteboardThread>());
 
     /**
      * Make a WhiteboardServer that listens for connections on port.
@@ -106,6 +107,7 @@ public class WhiteboardServer {
      *            The server will send debug messages only if this is true
      * @param port
      *            The network port on which the server should listen.
+     * @throws IOException
      */
     private static void runServer(int port, boolean debug) throws IOException {
         WhiteboardServer whiteboardServer = new WhiteboardServer(port, debug);
@@ -136,24 +138,29 @@ public class WhiteboardServer {
      * @param boardId
      * @return a List of all WhiteboardThreads working on the given boardId
      */
-    private List<WhiteboardThread> getCoworkers(String boardId) {
+    private synchronized List<WhiteboardThread> getCoworkers(String boardId) {
         List<WhiteboardThread> list = new ArrayList<>();
-        for (WhiteboardThread w : clientThreads) {
-            if (w.client.getCurrentBoardId().equals(boardId)) {
-                list.add(w);
+        synchronized (clientThreads) {
+            for (WhiteboardThread w : clientThreads) {
+                if (w.client.getCurrentBoardId().equals(boardId)) {
+                    list.add(w);
+                }
             }
         }
         return list;
+
     }
 
     /**
      * @param client
      * @return The first WhiteboardThread found that is using Client c
      */
-    private WhiteboardThread getThread(Client client) {
-        for (WhiteboardThread w : clientThreads) {
-            if (w.client.equals(client)) {
-                return w;
+    private synchronized WhiteboardThread getThread(Client client) {
+        synchronized (clientThreads) {
+            for (WhiteboardThread w : clientThreads) {
+                if (w.client.equals(client)) {
+                    return w;
+                }
             }
         }
         return null;
@@ -165,10 +172,12 @@ public class WhiteboardServer {
      * @param client
      * @return true if such a Thread was found and removed
      */
-    private boolean removeThread(Client client) {
-        for (WhiteboardThread w : clientThreads) {
-            if (w.client.equals(client)) {
-                return clientThreads.remove(w);
+    private synchronized boolean removeThread(Client client) {
+        synchronized (clientThreads) {
+            for (WhiteboardThread w : clientThreads) {
+                if (w.client.equals(client)) {
+                    return clientThreads.remove(w);
+                }
             }
         }
         return false;
@@ -181,11 +190,13 @@ public class WhiteboardServer {
      * @param message
      * @param boardId
      */
-    private void announceMessage(String message, String boardId) {
-        boards.get(boardId).add(message);
-        for (WhiteboardThread w : clientThreads) {
-            if (w.client.getCurrentBoardId().equals(boardId)) {
-                w.sendMessage(message);
+    private synchronized void announceMessage(String message, String boardId) {
+        synchronized (clientThreads) {
+            boards.get(boardId).add(message);
+            for (WhiteboardThread w : clientThreads) {
+                if (w.client.getCurrentBoardId().equals(boardId)) {
+                    w.sendMessage(message);
+                }
             }
         }
     }
@@ -200,11 +211,10 @@ public class WhiteboardServer {
         return input.matches(regex);
     }
 
-    private void handleClientOperation(String input, Client client) {
-        assert (isClientOperation(input));
-
+    private synchronized void handleClientOperation(String input, Client client) {
+        assert isClientOperation(input);
         WhiteboardThread thread = getThread(client);
-        assert (thread != null);
+        assert thread != null;
 
         String[] args = input.split(" ");
         String command = args[0];
@@ -213,11 +223,11 @@ public class WhiteboardServer {
             thread.sendMessages(new ArrayList<String>(boards.keySet()));
             break;
         case "changeBoard":
+            String oldBoard = client.getCurrentBoardId();
             String newBoard = args[1];
-            announceMessage("userQuit " + client.getUsername(), client.getCurrentBoardId());
+            announceMessage("userQuit " + client.getUsername(), oldBoard);
             joinBoard(client, newBoard);
             break;
-
         case "setUsername":
             String newName = args[1];
             thread.sendMessage(String.format("usernameChanged %s %s", client.getUsername(), newName));
@@ -228,15 +238,28 @@ public class WhiteboardServer {
         }
     }
 
-    private void joinBoard(Client client, String newBoard) {
+    /**
+     * Helper method that allows the given client to join a board with the given
+     * id. Creates the board if it does not exist. Also sends the board
+     * transcript to the client and sends the appropriate userJoined message to
+     * everyone.
+     * 
+     * @param client
+     * @param newBoard
+     */
+    private synchronized void joinBoard(Client client, String newBoard) {
         WhiteboardThread thread = getThread(client);
         assert (thread != null);
+
+        String oldBoard = client.getCurrentBoardId();
         
         client.setCurrentBoardId(newBoard);
+
         // create board if it doesn't exist
         if (!boards.containsKey(newBoard)) {
             boards.put(newBoard, new ArrayList<String>());
         }
+        thread.sendMessage(String.format("joinedBoard %s %s", oldBoard, newBoard));
         thread.sendMessages(boards.get(newBoard));
         announceMessage("userJoined " + client.getUsername(), newBoard);
     }
@@ -300,7 +323,9 @@ public class WhiteboardServer {
                     if (isClientOperation(input)) {
                         handleClientOperation(input, client);
                     } else {
-                        boards.get(client.getCurrentBoardId()).add(input);
+                        synchronized (boards) {
+                            boards.get(client.getCurrentBoardId()).add(input);
+                        }
                         announceMessage(input, client.getCurrentBoardId());
                     }
                 }
@@ -334,7 +359,7 @@ public class WhiteboardServer {
             this.client = client;
             this.socket = socket;
             if (!boards.containsKey(client.getCurrentBoardId())) {
-                boards.put(client.getCurrentBoardId(), new ArrayList<String>());
+                boards.put(client.getCurrentBoardId(), Collections.synchronizedList(new ArrayList<String>()));
             }
 
         }
