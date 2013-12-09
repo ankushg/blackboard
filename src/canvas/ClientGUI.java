@@ -20,19 +20,23 @@ import java.awt.event.MouseMotionListener;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import javax.swing.DefaultListModel;
 import javax.swing.GroupLayout;
 import javax.swing.JButton;
 import javax.swing.JColorChooser;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.SwingUtilities;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.LayoutStyle.ComponentPlacement;
+import javax.swing.table.DefaultTableModel;
 
 public class ClientGUI extends JFrame{
 
@@ -48,6 +52,7 @@ public class ClientGUI extends JFrame{
 	private final JLabel ip;
 	private final JTextField newIp;
 	private final JButton ipButton;
+	
 	
 	public ClientGUI(){
 		username = new JLabel("Please enter your username");
@@ -112,27 +117,52 @@ public class ClientGUI extends JFrame{
 		usernameButton.addActionListener(new ActionListener(){
         	public void actionPerformed(ActionEvent e) {
         		userID = newUsername.getText();
+        		newUsername.setText("");
         	}
         });
 		portButton.addActionListener(new ActionListener(){
         	public void actionPerformed(ActionEvent e) {
         		portNo = newPort.getText();
+        		newPort.setText("");
         	}
         });
 		ipButton.addActionListener(new ActionListener(){
         	public void actionPerformed(ActionEvent e) {
         		ipNo = newIp.getText();
+        		newIp.setText("");
         	}
         });
 
 	}
 	
+	public class mainFrame extends JFrame
+	{
+		private final JLabel serverInfo;
+		private final JLabel currentBoard;
+		private final DefaultListModel listModel;
+		private final JList boardList;
+		private final JTable userList;
+
+	    public mainFrame()
+	    {
+	    	serverInfo = new JLabel("Choose a whiteboard to draw on.");
+	    	currentBoard = new JLabel("");
+	    	listModel = new DefaultListModel();
+	    	boardList = new JList(listModel);
+	        userList = new JTable(new DefaultTableModel());
+			final DefaultTableModel users = (DefaultTableModel) userList.getModel();
+			users.addColumn("");
+	        this.pack();
+	        setVisible(true);
+	    }
+	}
+
     public static void main(final String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 ClientGUI main = new ClientGUI();
-
                 main.setVisible(true);
+                
             }
         });
     }
