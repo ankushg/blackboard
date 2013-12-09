@@ -95,7 +95,9 @@ public class ClientCanvas extends JFrame{
      */
     public ClientCanvas(int width, int height) {
     	
+    	// fix the size of the canvas and terminate the instance when closed
     	this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    	this.setResizable(false);
         
         whiteboardPanel = new ClientCanvasPanel(width,height,this);
         
