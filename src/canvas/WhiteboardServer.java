@@ -131,45 +131,78 @@ public class WhiteboardServer {
         }
     }
 
-    private List<WhiteboardThread> getCoworkers(String mapId) {
+    /**
+     * @param boardId
+     * @return a List of all WhiteboardThreads working on the given boardId
+     */
+    private List<WhiteboardThread> getCoworkers(String boardId) {
         List<WhiteboardThread> list = new ArrayList<>();
         for (WhiteboardThread w : clientThreads) {
-            if (w.client.getCurrentBoardId().equals(mapId)) {
+            if (w.client.getCurrentBoardId().equals(boardId)) {
                 list.add(w);
             }
         }
         return list;
     }
 
-    private static boolean isClientOperation(String input) {
-        String regex = "(changeBoard [a-zA-Z0-9_]+)" + "|(setUsername [a-zA-Z0-9_]+)" + "|(listBoards)";
-        return input.matches(regex);
-    }
-
-    private WhiteboardThread getThread(Client c) {
+    /**
+     * @param client
+     * @return The first WhiteboardThread found that is using Client c
+     */
+    private WhiteboardThread getThread(Client client) {
         for (WhiteboardThread w : clientThreads) {
-            if (w.client.equals(c)) {
+            if (w.client.equals(client)) {
                 return w;
             }
         }
         return null;
     }
 
-    private boolean removeThread(Client c) {
+    /**
+     * Removes any Thread with the given client
+     * 
+     * @param client
+     * @return true if such a Thread was found and removed
+     */
+    private boolean removeThread(Client client) {
         for (WhiteboardThread w : clientThreads) {
-            if (w.client.equals(c)) {
+            if (w.client.equals(client)) {
                 return clientThreads.remove(w);
             }
         }
         return false;
     }
 
+    /**
+     * Sends message to any thread working on the given board.
+     * 
+     * @param message
+     * @param boardId
+     */
+    private void announceMessage(String message, String boardId) {
+        for (WhiteboardThread w : clientThreads) {
+            if (w.client.getCurrentBoardId().equals(boardId)) {
+                w.sendMessage(message);
+            }
+        }
+    }
+
+    /**
+     * @param input
+     * @return true of input is a client operation, false if it is a board
+     *         operation (i.e., needs to be echoed to every other thread)
+     */
+    private static boolean isClientOperation(String input) {
+        String regex = "(changeBoard [a-zA-Z0-9_]+)" + "|(setUsername [a-zA-Z0-9_]+)" + "|(listBoards)";
+        return input.matches(regex);
+    }
+
     private void handleClientOperation(String input, Client client) {
         assert (isClientOperation(input));
-        
+
         WhiteboardThread thread = getThread(client);
-        assert(thread != null);
-        
+        assert (thread != null);
+
         String[] args = input.split(" ");
         String command = args[0];
         switch (command) {
@@ -179,12 +212,13 @@ public class WhiteboardServer {
         case "changeBoard":
             String newBoard = args[1];
             client.setCurrentBoardId(newBoard);
+            announceMessage("userJoin " + client.getUsername(), newBoard);
 
             // create board if it doesn't exist
             if (!boards.containsKey(newBoard)) {
                 boards.put(newBoard, new ArrayList<String>());
             }
-            
+
             thread.sendMessages(boards.get(newBoard));
             break;
 
@@ -195,10 +229,21 @@ public class WhiteboardServer {
         }
     }
 
+    /**
+     * The Thread responsible for a single Client's interactions with the
+     * server.
+     * 
+     */
     private class WhiteboardThread extends Thread {
         private final Client client;
         private final Socket socket;
 
+        /**
+         * Creates a WhiteboardThread with the given Client and Socket
+         * 
+         * @param socket
+         * @param client
+         */
         private WhiteboardThread(final Socket socket, final Client client) {
             super(new Runnable() {
                 /**
@@ -238,10 +283,7 @@ public class WhiteboardServer {
                         handleClientOperation(input, client);
                     } else {
                         boards.get(client.getCurrentBoardId()).add(input);
-                        List<WhiteboardThread> coworkers = getCoworkers(client.getCurrentBoardId());
-                        for (WhiteboardThread w : coworkers) {
-                            w.sendMessage(input);
-                        }
+                        announceMessage(input, client.getCurrentBoardId());
                     }
                 }
 
@@ -253,6 +295,9 @@ public class WhiteboardServer {
                     try {
                         socket.close();
                         removeThread(client);
+                        for (WhiteboardThread t : getCoworkers(client.getCurrentBoardId())) {
+                            t.sendMessage("userQuit " + client.getUsername());
+                        }
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -279,6 +324,12 @@ public class WhiteboardServer {
 
         }
 
+        /**
+         * Send a message to the outputstream of this thread's client
+         * 
+         * @param string
+         *            the message
+         */
         public synchronized void sendMessage(String string) {
             try {
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
@@ -288,8 +339,15 @@ public class WhiteboardServer {
             }
 
         }
-        
-        public synchronized void sendMessages(List<String> messages){
+
+        /**
+         * Send a list of messages to the outputstream of this thread's client
+         * as a single message separated by newlines
+         * 
+         * @param messages
+         *            the messages
+         */
+        public synchronized void sendMessages(List<String> messages) {
             StringBuilder sb = new StringBuilder();
             for (String s : messages) {
                 sb.append(s + "\n");

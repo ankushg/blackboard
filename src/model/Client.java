@@ -1,23 +1,39 @@
 package model;
 
-import java.awt.BasicStroke;
-import java.awt.Stroke;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * An object representing a single Client. Rep invariant is that each client
+ * generated is unique due to the id attribute.
+ * 
+ */
 public class Client {
+    /**
+     * The username of the Client
+     */
     String username;
+    /**
+     * The currentBoardId of the Client
+     */
     String currentBoardId;
-    Stroke stroke;
 
-    // Guarantees that any client object will be unique
+    @SuppressWarnings("javadoc")
     static final AtomicLong NEXT_ID = new AtomicLong(0);
-    final long id = NEXT_ID.getAndIncrement();
+    /**
+     * The id of the Client. Guarantees that any Client object will be unique.
+     */
+    private final long id = NEXT_ID.getAndIncrement();
 
+    /**
+     * Create a new Client associated with a given boardId String
+     * 
+     * @param boardId
+     *            the board that the client is associated with
+     */
     public Client(String boardId) {
         super();
         this.username = "User" + id;
         this.currentBoardId = boardId;
-        this.stroke = new BasicStroke(10);
     }
 
     /**
@@ -48,21 +64,6 @@ public class Client {
      */
     public synchronized void setCurrentBoardId(String currentBoardId) {
         this.currentBoardId = currentBoardId;
-    }
-
-    /**
-     * @return the stroke
-     */
-    public synchronized Stroke getStroke() {
-        return stroke;
-    }
-
-    /**
-     * @param stroke
-     *            the stroke to set
-     */
-    public synchronized void setStroke(Stroke stroke) {
-        this.stroke = stroke;
     }
 
     @Override
