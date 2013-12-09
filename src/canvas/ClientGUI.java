@@ -31,6 +31,8 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.SwingUtilities;
+import javax.swing.GroupLayout.Alignment;
+import javax.swing.LayoutStyle.ComponentPlacement;
 
 public class ClientGUI extends JFrame{
 
@@ -59,40 +61,53 @@ public class ClientGUI extends JFrame{
 		ipButton = new JButton("Set IP address");
         Container initialPanel = this.getContentPane();
         GroupLayout layout = new GroupLayout(initialPanel);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(Alignment.LEADING)
+                .addGroup(layout.createSequentialGroup()
+                    .addGroup(layout.createParallelGroup(Alignment.LEADING)
+                        .addGroup(layout.createSequentialGroup()
+                            .addContainerGap()
+                            .addComponent(port))
+                        .addGroup(layout.createSequentialGroup()
+                            .addContainerGap()
+                            .addComponent(username))
+                        .addGroup(layout.createSequentialGroup()
+                            .addContainerGap()
+                            .addComponent(ip)))
+                    .addPreferredGap(ComponentPlacement.RELATED)
+                    .addGroup(layout.createParallelGroup(Alignment.LEADING, false)
+                        .addComponent(newIp)
+                        .addComponent(newPort)
+                        .addComponent(newUsername, 48, 48, Short.MAX_VALUE))
+                    .addPreferredGap(ComponentPlacement.RELATED)
+                    .addGroup(layout.createParallelGroup(Alignment.LEADING)
+                        .addGroup(layout.createParallelGroup(Alignment.TRAILING, false)
+                            .addComponent(ipButton, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(portButton, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addComponent(usernameButton, GroupLayout.DEFAULT_SIZE, 145, Short.MAX_VALUE))
+                    .addContainerGap())
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(Alignment.LEADING)
+                .addGroup(layout.createSequentialGroup()
+                    .addGroup(layout.createParallelGroup(Alignment.BASELINE)
+                        .addComponent(username)
+                        .addComponent(usernameButton)
+                        .addComponent(newUsername, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                    .addPreferredGap(ComponentPlacement.RELATED)
+                    .addGroup(layout.createParallelGroup(Alignment.BASELINE)
+                        .addComponent(port)
+                        .addComponent(newPort, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        .addComponent(portButton))
+                    .addPreferredGap(ComponentPlacement.RELATED)
+                    .addGroup(layout.createParallelGroup(Alignment.BASELINE)
+                        .addComponent(ip)
+                        .addComponent(newIp, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        .addComponent(ipButton)))
+        );
         initialPanel.setLayout(layout);
         layout.setAutoCreateGaps(true);
         layout.setAutoCreateContainerGaps(true);
-        
-        layout.setHorizontalGroup(
-                layout.createParallelGroup()
-                .addGroup(layout.createSequentialGroup()
-                		.addComponent(username)
-                		.addComponent(newUsername)
-                		.addComponent(usernameButton))
-                .addGroup(layout.createSequentialGroup()
-                		.addComponent(port)
-                		.addComponent(newPort)
-                		.addComponent(portButton))
-                .addGroup(layout.createSequentialGroup()
-                		.addComponent(ip)
-                		.addComponent(newIp)
-                		.addComponent(ipButton))
-                		);
-        layout.setVerticalGroup(
-                layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                    .addComponent(username)
-                    .addComponent(port)
-                    .addComponent(ip))
-                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                    .addComponent(newUsername)
-                    .addComponent(newPort)
-                    .addComponent(newIp))
-                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                	.addComponent(usernameButton)
-                	.addComponent(portButton)
-                	.addComponent(ipButton))
-        			);
         this.pack();
 		usernameButton.addActionListener(new ActionListener(){
         	public void actionPerformed(ActionEvent e) {
