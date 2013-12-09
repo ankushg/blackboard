@@ -1,38 +1,21 @@
 package canvas;
 
-import java.awt.BasicStroke;
-import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Container;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.Point;
-import java.awt.Polygon;
-import java.awt.Rectangle;
-import java.awt.Stroke;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
-import java.util.ArrayList;
-import java.util.HashMap;
-
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
 import javax.swing.DefaultListModel;
 import javax.swing.GroupLayout;
 import javax.swing.JButton;
-import javax.swing.JColorChooser;
-import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.JTextField;
-import javax.swing.JToggleButton;
 import javax.swing.SwingUtilities;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.LayoutStyle.ComponentPlacement;
@@ -41,8 +24,9 @@ import javax.swing.table.DefaultTableModel;
 public class ClientGUI extends JFrame{
 
 	private String userID;
-	private String portNo;
-	private String ipNo;
+	private String portNo = "4500";
+	private String ipNo = "127.0.0.1";
+	private int portNumber;
 	private final JButton usernameButton;
 	private final JTextField newUsername;
 	private final JLabel username;
@@ -52,6 +36,10 @@ public class ClientGUI extends JFrame{
 	private final JLabel ip;
 	private final JTextField newIp;
 	private final JButton ipButton;
+	private final JButton connectServer;
+	private PrintWriter w;
+	private BufferedReader r;
+	private Socket socket;
 	
 	
 	public ClientGUI(){
@@ -64,6 +52,8 @@ public class ClientGUI extends JFrame{
 		ip = new JLabel("Please enter your IP address");
 		newIp = new JTextField();
 		ipButton = new JButton("Set IP address");
+		connectServer = new JButton("Connect to server");
+		
         Container initialPanel = this.getContentPane();
         GroupLayout layout = new GroupLayout(initialPanel);
         layout.setHorizontalGroup(
@@ -79,6 +69,9 @@ public class ClientGUI extends JFrame{
                         .addGroup(layout.createSequentialGroup()
                             .addContainerGap()
                             .addComponent(ip)))
+                        .addGroup(layout.createSequentialGroup()
+                            .addContainerGap()
+                            .addComponent(connectServer))
                     .addPreferredGap(ComponentPlacement.RELATED)
                     .addGroup(layout.createParallelGroup(Alignment.LEADING, false)
                         .addComponent(newIp)
@@ -108,7 +101,10 @@ public class ClientGUI extends JFrame{
                     .addGroup(layout.createParallelGroup(Alignment.BASELINE)
                         .addComponent(ip)
                         .addComponent(newIp, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                        .addComponent(ipButton)))
+                        .addComponent(ipButton))
+                    .addPreferredGap(ComponentPlacement.RELATED)
+                    .addGroup(layout.createParallelGroup(Alignment.BASELINE)
+                    	.addComponent(connectServer)))
         );
         initialPanel.setLayout(layout);
         layout.setAutoCreateGaps(true);
@@ -123,6 +119,7 @@ public class ClientGUI extends JFrame{
 		portButton.addActionListener(new ActionListener(){
         	public void actionPerformed(ActionEvent e) {
         		portNo = newPort.getText();
+        		portNumber = Integer.parseInt(portNo);
         		newPort.setText("");
         	}
         });
@@ -132,28 +129,93 @@ public class ClientGUI extends JFrame{
         		newIp.setText("");
         	}
         });
+		connectServer.addActionListener(new ActionListener(){
+        	public void actionPerformed(ActionEvent e) {
+        		try {
+					socket = new Socket(ipNo, portNumber);
+					w = new PrintWriter(socket.getOutputStream(),true);
+					r = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+        		w.print("setUsername " + userID);
+        		MainFrame main;
+				try {
+					main = new MainFrame();
+	        		main.setVisible(true);
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+        	}
+        });
 
 	}
 	
-	public class mainFrame extends JFrame
+	public class MainFrame extends JFrame
 	{
 		private final JLabel serverInfo;
 		private final JLabel currentBoard;
 		private final DefaultListModel listModel;
 		private final JList boardList;
 		private final JTable userList;
+		private final JTextField newBoard;
+		private final JButton enterBoard;
 
-	    public mainFrame()
+	    public MainFrame() throws IOException
 	    {
-	    	serverInfo = new JLabel("Choose a whiteboard to draw on.");
+	    	serverInfo = new JLabel("Choose a whiteboard to draw on or add a new whiteboard.");
+	    	enterBoard = new JButton("OK");
 	    	currentBoard = new JLabel("");
+	    	newBoard = new JTextField();
 	    	listModel = new DefaultListModel();
 	    	boardList = new JList(listModel);
+	    	w.print("listBoards");
+            for (String line = r.readLine(); line != null; line = r.readLine()) {
+                listModel.addElement(line);
+            }
 	        userList = new JTable(new DefaultTableModel());
 			final DefaultTableModel users = (DefaultTableModel) userList.getModel();
 			users.addColumn("");
+	        Container initialPanel = this.getContentPane();
+	        GroupLayout groupLayout = new GroupLayout(initialPanel);
+	        groupLayout.setHorizontalGroup(
+	                groupLayout.createParallelGroup()
+	                    .addGroup(groupLayout.createSequentialGroup()
+	                        .addComponent(serverInfo))
+	                    .addGroup(groupLayout.createSequentialGroup()
+	                        .addComponent(boardList)
+	                        .addComponent(userList))
+	                    .addGroup(groupLayout.createSequentialGroup()
+	                        .addComponent(enterBoard))
+	            );
+	            groupLayout.setVerticalGroup(
+	                groupLayout.createSequentialGroup()
+	                    .addGroup(groupLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+	                        .addComponent(serverInfo))
+	                    .addGroup(groupLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+	                        .addComponent(boardList)
+	                        .addComponent(userList))
+	                    .addGroup(groupLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+	                        .addComponent(enterBoard))
+	            );
 	        this.pack();
+	        
 	        setVisible(true);
+	        
+			enterBoard.addActionListener(new ActionListener(){
+	        	public void actionPerformed(ActionEvent e) {
+	        		if(boardList.isSelectionEmpty()){
+	        			String boardName = newBoard.getText();
+	        			w.print("changeBoard " + boardName);
+	        			listModel.addElement(boardName);
+	        		}
+	        		else{
+	        			String board = (String)boardList.getSelectedValue();
+	        			w.print("changeBoard " + board);
+	        		}
+	        	}
+	        });
+
 	    }
 	}
 
@@ -162,7 +224,6 @@ public class ClientGUI extends JFrame{
             public void run() {
                 ClientGUI main = new ClientGUI();
                 main.setVisible(true);
-                
             }
         });
     }
