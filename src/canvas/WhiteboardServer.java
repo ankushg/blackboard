@@ -1,6 +1,5 @@
 package canvas;
 
-import java.awt.BasicStroke;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -9,21 +8,23 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Queue;
 
-import model.Board;
 import model.Client;
 
 public class WhiteboardServer {
 
     private ServerSocket serverSocket;
+    @SuppressWarnings("unused")
     private boolean debug;
-    
-    private List<Board> boards;
-    private List<WhiteboardThread> clientThreads;
+
+    private Map<String, List<String>> boards = new HashMap<>();
+    private List<WhiteboardThread> clientThreads = new ArrayList<>();
 
     /**
      * Make a WhiteboardServer that listens for connections on port.
@@ -32,6 +33,7 @@ public class WhiteboardServer {
      *            port number, requires 0 <= port <= 65535
      * @param debug
      *            whether debug mode is on on or not
+     * @throws IOException
      */
     public WhiteboardServer(int port, boolean debug) throws IOException {
         serverSocket = new ServerSocket(port);
@@ -47,9 +49,13 @@ public class WhiteboardServer {
      * 
      * PORT is an optional integer in the range 0 to 65535 inclusive, specifying
      * the port the server should be listening on for incoming connections. E.g.
-     * "MinesweeperServer --port 1234" starts the server listening on port 1234.
+     * "WhiteboardServer --port 1234" starts the server listening on port 1234.
+     * Defaults to port 4500.
+     * 
+     * @param args
+     *            arguments
      */
-    public static void main(@SuppressWarnings("javadoc") String[] args) {
+    public static void main(String[] args) {
         // default values
         int port = 4500;
         boolean debug = true;
@@ -80,7 +86,6 @@ public class WhiteboardServer {
             }
         } catch (IllegalArgumentException iae) {
             System.err.println(iae.getMessage());
-            System.err.println("usage: MinesweeperServer [--debug] [--port PORT] [--size SIZE | --file FILE]");
             return;
         }
 
@@ -115,26 +120,79 @@ public class WhiteboardServer {
      *             individual clients do *not* terminate serve())
      */
     private void serve() throws IOException {
-        // TODO Auto-generated method stub
         while (true) {
             // block until a client connects
             final Socket socket = serverSocket.accept();
-            final Client newClient = new Client("", 0, new BasicStroke(10));
+            final Client newClient = new Client("default");
             WhiteboardThread thread = new WhiteboardThread(socket, newClient);
             clientThreads.add(thread);
             // handle the client
             thread.start();
         }
     }
-    
-    private List<WhiteboardThread> getCoworkers(int mapId) {
+
+    private List<WhiteboardThread> getCoworkers(String mapId) {
         List<WhiteboardThread> list = new ArrayList<>();
         for (WhiteboardThread w : clientThreads) {
-            if (w.client.getCurrentBoardId() == mapId) {
+            if (w.client.getCurrentBoardId().equals(mapId)) {
                 list.add(w);
             }
         }
         return list;
+    }
+
+    private static boolean isClientOperation(String input) {
+        String regex = "(changeBoard [a-zA-Z0-9_]+)" + "|(setUsername [a-zA-Z0-9_]+)" + "|(listBoards)";
+        return input.matches(regex);
+    }
+
+    private WhiteboardThread getThread(Client c) {
+        for (WhiteboardThread w : clientThreads) {
+            if (w.client.equals(c)) {
+                return w;
+            }
+        }
+        return null;
+    }
+
+    private boolean removeThread(Client c) {
+        for (WhiteboardThread w : clientThreads) {
+            if (w.client.equals(c)) {
+                return clientThreads.remove(w);
+            }
+        }
+        return false;
+    }
+
+    private void handleClientOperation(String input, Client client) {
+        assert (isClientOperation(input));
+        
+        WhiteboardThread thread = getThread(client);
+        assert(thread != null);
+        
+        String[] args = input.split(" ");
+        String command = args[0];
+        switch (command) {
+        case "listBoards":
+            thread.sendMessages(new ArrayList<String>(boards.keySet()));
+            break;
+        case "changeBoard":
+            String newBoard = args[1];
+            client.setCurrentBoardId(newBoard);
+
+            // create board if it doesn't exist
+            if (!boards.containsKey(newBoard)) {
+                boards.put(newBoard, new ArrayList<String>());
+            }
+            
+            thread.sendMessages(boards.get(newBoard));
+            break;
+
+        case "setUsername":
+            String newName = args[1];
+            client.setUsername(newName);
+            break;
+        }
     }
 
     private class WhiteboardThread extends Thread {
@@ -176,20 +234,25 @@ public class WhiteboardServer {
                  *            message from client
                  */
                 private void handleRequest(String input) {
-                    // TODO: handle requests from client
-                    for (WhiteboardThread w : getCoworkers(client.getCurrentBoardId())) {
-                        w.sendMessage(input);
+                    if (isClientOperation(input)) {
+                        handleClientOperation(input, client);
+                    } else {
+                        boards.get(client.getCurrentBoardId()).add(input);
+                        List<WhiteboardThread> coworkers = getCoworkers(client.getCurrentBoardId());
+                        for (WhiteboardThread w : coworkers) {
+                            w.sendMessage(input);
+                        }
                     }
-                    // TODO: add to board's operations
                 }
 
                 /**
-                 * Disconnect the socket in this thread and decrement the
-                 * sockets counter
+                 * Disconnect the socket in this thread and removes from the
+                 * list of active threads.
                  */
                 private void disconnectSocket(final Socket socket) {
                     try {
                         socket.close();
+                        removeThread(client);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -207,21 +270,33 @@ public class WhiteboardServer {
                     }
                 }
             });
-            
+
             this.client = client;
             this.socket = socket;
+            if (!boards.containsKey(client.getCurrentBoardId())) {
+                boards.put(client.getCurrentBoardId(), new ArrayList<String>());
+            }
 
         }
 
-        public void sendMessage(String string) {
+        public synchronized void sendMessage(String string) {
             try {
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                 out.println(string);
             } catch (IOException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
 
+        }
+        
+        public synchronized void sendMessages(List<String> messages){
+            StringBuilder sb = new StringBuilder();
+            for (String s : messages) {
+                sb.append(s + "\n");
+            }
+            if (sb.length() > 2) {
+                sendMessage(sb.substring(0, sb.length() - 1));
+            }
         }
     }
 
