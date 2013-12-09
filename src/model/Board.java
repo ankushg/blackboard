@@ -6,11 +6,10 @@ import operations.Operation;
 
 public class Board {
     int id;
-    List<Operation> operations;
+    List<String> operations;
 
     
-    public String addOperation(Operation op){
-        this.operations.add(op);
-        return op.toString();
+    public boolean addOperation(String op){
+        return this.operations.add(op);
     }
 }

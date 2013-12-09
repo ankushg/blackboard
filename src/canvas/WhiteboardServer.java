@@ -127,20 +127,19 @@ public class WhiteboardServer {
         }
     }
     
-    private List<WhiteboardThread> getCoworkers(int mapId){
+    private List<WhiteboardThread> getCoworkers(int mapId) {
         List<WhiteboardThread> list = new ArrayList<>();
-        for(WhiteboardThread w : clientThreads){
-            if(w.client.getCurrentBoardId() == mapId){
+        for (WhiteboardThread w : clientThreads) {
+            if (w.client.getCurrentBoardId() == mapId) {
                 list.add(w);
             }
         }
         return list;
     }
 
-    
-    
     private class WhiteboardThread extends Thread {
         private final Client client;
+        private final Socket socket;
 
         private WhiteboardThread(final Socket socket, final Client client) {
             super(new Runnable() {
@@ -161,16 +160,7 @@ public class WhiteboardServer {
                     out.println("");
                     try {
                         for (String line = in.readLine(); line != null; line = in.readLine()) {
-                            String output = handleRequest(line);
-                            if (output != null) {
-                                if (output.equals("")) {
-                                    out.close();
-                                    in.close();
-                                    return;
-                                } else {
-                                    out.println(output);
-                                }
-                            }
+                            handleRequest(line);
                         }
                     } finally {
                         out.close();
@@ -180,23 +170,24 @@ public class WhiteboardServer {
 
                 /**
                  * Handler for client input, performing requested operations and
-                 * returning an output message.
+                 * sending an output message.
                  * 
                  * @param input
                  *            message from client
-                 * @return message to client
                  */
-                private String handleRequest(String input) {
+                private void handleRequest(String input) {
                     // TODO: handle requests from client
-
-                    throw new UnsupportedOperationException();
+                    for (WhiteboardThread w : getCoworkers(client.getCurrentBoardId())) {
+                        w.sendMessage(input);
+                    }
+                    // TODO: add to board's operations
                 }
 
                 /**
                  * Disconnect the socket in this thread and decrement the
                  * sockets counter
                  */
-                private void disconnectSocket() {
+                private void disconnectSocket(final Socket socket) {
                     try {
                         socket.close();
                     } catch (IOException e) {
@@ -212,12 +203,24 @@ public class WhiteboardServer {
                     } catch (IOException e) {
                         e.printStackTrace(); // but don't terminate serve()
                     } finally {
-                        disconnectSocket();
+                        disconnectSocket(socket);
                     }
                 }
             });
             
             this.client = client;
+            this.socket = socket;
+
+        }
+
+        public void sendMessage(String string) {
+            try {
+                PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                out.println(string);
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
 
         }
     }
