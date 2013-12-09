@@ -220,6 +220,7 @@ public class WhiteboardServer {
 
         case "setUsername":
             String newName = args[1];
+            thread.sendMessage(String.format("usernameChanged %s %s", client.getUsername(), newName));
             announceMessage("userQuit " + client.getUsername(), client.getCurrentBoardId());
             client.setUsername(newName);
             announceMessage("userJoined " + client.getUsername(), client.getCurrentBoardId());
