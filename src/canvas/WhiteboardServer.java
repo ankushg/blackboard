@@ -20,12 +20,27 @@ import model.Client;
 
 public class WhiteboardServer {
 
+    /**
+     * The default board that the user connects to upon joining the server
+     */
     private static String DEFAULT_BOARD = "default";
+
     private ServerSocket serverSocket;
+
     @SuppressWarnings("unused")
     private boolean debug;
 
+    /**
+     * Store ALL the whiteboards! Boards are represented by lists of string
+     * outputs that construct them (they're constructed on the client-side).
+     * Stored as a synchronized Map to make operations atomic.
+     */
     private Map<String, List<String>> boards = Collections.synchronizedMap(new HashMap<String, List<String>>());
+
+    /**
+     * Store references to all WhiteboardThreads that are connected to the
+     * server. Stored as a synchronized List to make operations atomic.
+     */
     private List<WhiteboardThread> clientThreads = Collections.synchronizedList(new ArrayList<WhiteboardThread>());
 
     /**
@@ -135,23 +150,6 @@ public class WhiteboardServer {
     }
 
     /**
-     * @param boardId
-     * @return a List of all WhiteboardThreads working on the given boardId
-     */
-    private synchronized List<WhiteboardThread> getCoworkers(String boardId) {
-        List<WhiteboardThread> list = new ArrayList<>();
-        synchronized (clientThreads) {
-            for (WhiteboardThread w : clientThreads) {
-                if (w.client.getCurrentBoardId().equals(boardId)) {
-                    list.add(w);
-                }
-            }
-        }
-        return list;
-
-    }
-
-    /**
      * @param client
      * @return The first WhiteboardThread found that is using Client c
      */
@@ -211,6 +209,15 @@ public class WhiteboardServer {
         return input.matches(regex);
     }
 
+    /**
+     * Handles input from a client. Thread-safe because the server only handles
+     * one client operation at a time.
+     * 
+     * @param input
+     *            the string to react to
+     * @param client
+     *            the client from which the input originates
+     */
     private synchronized void handleClientOperation(String input, Client client) {
         assert isClientOperation(input);
         WhiteboardThread thread = getThread(client);
@@ -247,21 +254,28 @@ public class WhiteboardServer {
      * @param client
      * @param newBoard
      */
-    private synchronized void joinBoard(Client client, String newBoard) {
-        WhiteboardThread thread = getThread(client);
-        assert (thread != null);
+    private void joinBoard(Client client, String newBoard) {
+        // synchronized on client so that more than one joinBoard command isn't
+        // run at a time for a given client
+        synchronized (client) {
+            WhiteboardThread thread = getThread(client);
+            assert thread != null;
 
-        String oldBoard = client.getCurrentBoardId();
-        
-        client.setCurrentBoardId(newBoard);
+            String oldBoard = client.getCurrentBoardId();
 
-        // create board if it doesn't exist
-        if (!boards.containsKey(newBoard)) {
-            boards.put(newBoard, new ArrayList<String>());
+            client.setCurrentBoardId(newBoard);
+
+            // create board if it doesn't exist. synchronized on boards in case
+            // multiple users join the same board at the same time
+            synchronized (boards) {
+                if (!boards.containsKey(newBoard)) {
+                    boards.put(newBoard, new ArrayList<String>());
+                }
+            }
+            thread.sendMessage(String.format("joinedBoard %s %s", oldBoard, newBoard));
+            thread.sendMessages(boards.get(newBoard));
+            announceMessage("userJoined " + client.getUsername(), newBoard);
         }
-        thread.sendMessage(String.format("joinedBoard %s %s", oldBoard, newBoard));
-        thread.sendMessages(boards.get(newBoard));
-        announceMessage("userJoined " + client.getUsername(), newBoard);
     }
 
     /**
@@ -294,7 +308,6 @@ public class WhiteboardServer {
                 private void handleConnection(Socket socket) throws IOException {
                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-                    // TODO output welcome message to client
                     out.println("");
                     joinBoard(client, "default");
 
@@ -345,7 +358,6 @@ public class WhiteboardServer {
 
                 @Override
                 public void run() {
-                    // TODO Auto-generated method stub
                     try {
                         handleConnection(socket);
                     } catch (IOException e) {
@@ -365,7 +377,8 @@ public class WhiteboardServer {
         }
 
         /**
-         * Send a message to the outputstream of this thread's client
+         * Send a message to the outputstream of this thread's client.
+         * Threadsafe because it is locked
          * 
          * @param string
          *            the message
@@ -382,7 +395,11 @@ public class WhiteboardServer {
 
         /**
          * Send a list of messages to the outputstream of this thread's client
-         * as a single message separated by newlines
+         * as a single message separated by newlines. This ensures that all
+         * messages will be sent in order without interleaving.
+         * 
+         * Threadsafe because it is locked on the WhiteboardThread responsible
+         * for a single client.
          * 
          * @param messages
          *            the messages
