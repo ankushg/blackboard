@@ -68,7 +68,7 @@ public class ClientGUI extends JFrame{
         
         showLoginScreen();
         
-        
+        // set up a thread to listen for and handle incoming server messages
         Thread clientThread = new Thread(new Runnable() {
 
 			@Override
@@ -76,15 +76,11 @@ public class ClientGUI extends JFrame{
 				try {
                     for (String line = r.readLine(); line != null; line = r.readLine()) {
                         for (String drawingMessage: MessageProtocol.DRAWING_MESSAGE_LIST){
-                        	
                         	if (line.startsWith(drawingMessage)){
                         		canvas.receiveDrawingMessage(line);
                         	}
-                        	
-                        	else{
-                        		infoPanel.receiveServerMessage(line);
-                        	}
-                        }
+                        }     
+                    	infoPanel.receiveServerMessage(line);
                     }
                 } catch (IOException e) {
 					// TODO Auto-generated catch block
@@ -97,6 +93,9 @@ public class ClientGUI extends JFrame{
         	
         });
         clientThread.start();
+        
+        //ping the server for the current boards
+        getBoardList();
 	}
 	
 
@@ -126,7 +125,6 @@ public class ClientGUI extends JFrame{
 				socket = new Socket(IPAddress.getText(), Integer.parseInt(portNum.getText()));
 				w = new PrintWriter(socket.getOutputStream(),true);
 				r = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-				getBoardList();
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
@@ -136,28 +134,29 @@ public class ClientGUI extends JFrame{
         }
     }
         
-        
-    public synchronized void getBoardList() throws IOException{
-        w.println("listBoards");
-       	while((r.readLine()) != null){
-        	infoPanel.addToBoardList(r.readLine());
-        }	
+    /**
+     * Send a message to the server to retrieve the list of current boards
+     * 
+     * The return message will come in through the clientThread
+     */
+    public synchronized void getBoardList(){
+        this.sendMessage("listBoards");
 	}
     
     public synchronized void getUsers(String board){
-    	w.println();
+    	//TODO: not yet implemented
     }
-
+    
+    /**
+     * This method sends a message to the server in a threadsafe manner
+     * 
+     * @param output the String to send to the server
+     */
 	public synchronized void sendMessage(String output){
 		w.println(output);
 	}
-    
-	public synchronized String sendAndGetMessage(String output) throws IOException{
-		w.println(output);
-		return r.readLine();
-	}
 	
-    public void main(final String[] args) {
+    public static void main(final String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 ClientGUI main;

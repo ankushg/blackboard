@@ -25,6 +25,16 @@ import javax.swing.GroupLayout.Alignment;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.table.DefaultTableModel;
 
+/**
+ * A JPanel that manages all of the information about boards/users that are
+ * retrieved from the server
+ * 
+ * @author kevinwen
+ *
+ * TODO: Fix changing whiteboards (the display of all current whiteboards, joining new whiteboards,
+ * 					joining existing whiteboards)
+ * TODO: Fix the way the users are displayed
+ */
 public class ClientInfoPanel extends JPanel{
 
 		private static final long serialVersionUID = 1L;
