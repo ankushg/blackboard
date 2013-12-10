@@ -1,337 +1,537 @@
 package client;
 
-import java.awt.BasicStroke;
-import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Point;
-import java.awt.Polygon;
-import java.awt.Rectangle;
-import java.awt.Stroke;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.awt.geom.Line2D;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
-import javax.swing.GroupLayout;
-import javax.swing.JButton;
-import javax.swing.JColorChooser;
-import javax.swing.JComboBox;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JToggleButton;
-import javax.swing.SwingUtilities;
+
+import model.DrawingLayer;
+import model.DrawingOperationProtocol;
+
 
 /**
- * ClientCanvas represents the sub-GUI surrounding a ClientCanvasPanel, which 
- * allows drawing surface that allows the user to draw
- * on it using tools such as freehand, shapes, etc. and allows the
+ * ClientCanvas represents the actual drawing surface where the user 
+ * can draw using tools such as freehand, shapes, etc., and allows the
  * user to erase as well. The canvas communicates with a ServerCanvas
  * to allow collaboration on a whiteboard among multiple users
  * 
+ * Concurrency Argument:
+ * The fields drawingCounter, drawingBuffer, and recentDrawings are only ever
+ * 		accessed/modified after synchronizing on the class
  * 
- * TODO: Change interface to use icons instead of text
- * TODO: Make interface more user friendly
- * TODO: Get the userID info from the ClientGUI after establishing a connection
  * 
  * 
+ * TODO: Finish Concurrency Argument
+ * TODO: Write tests for message creation
+ * TODO: Write tests for message receiving
+ * TODO: Document methods better
+ * 
+ * @author jlmart88
+ *
  */
 public class ClientCanvas extends JPanel{
-    
-    private final ClientCanvasPanel whiteboardPanel;
-    
-    // WARNING: Change this once we establish a user id protocol
-    private final String userID = "fillInUserID";
-    
-    // whiteboard tools
-    private final JToggleButton pencilModeButton;
-    private final JToggleButton eraseModeButton;
-    private final JToggleButton lineModeButton;
-    private final JToggleButton shapeModeButton;
-    private final JToggleButton[] toolButtonList;
-    private final JToggleButton shapeFilledButton;
-    private final JComboBox<String> shapeSelectionBox;
-    private final JComboBox<String> widthSelectionBox;
-    private final JLabel currentColorLabel;
-    private final JButton eraseAllButton;
-    
-    private final ClientGUI clientGUI;
-    
-    public final static String SQUARE = "Square";
-    public final static String RECTANGLE = "Rectangle";
-    public final static String CIRCLE = "Circle";
-    public final static String OVAL = "Oval";
-    
-    public final static String[] SHAPE_OPTIONS = {SQUARE, RECTANGLE, CIRCLE, OVAL};
-    public final static String[] WIDTH_OPTIONS = {"5px", "10px", "20px"};
-    public final static String PENCIL_BUTTON = "pencilModeButton";
-    public final static String ERASE_BUTTON = "eraseModeButton";
-    public final static String LINE_BUTTON = "lineModeButton";
-    public final static String SHAPE_BUTTON = "shapeModeButton";
-    public final static String ERASE_ALL_BUTTON = "eraseAllButton";
-    public final static String SHAPE_FILLED_BUTTON = "shapeFilledButton";
-    public final static String SHAPE_SELECTION_BOX = "shapeSelectionBox";
-    public final static String WIDTH_SELECTION_BOX = "widthSelectionBox";
-    public final static String CURRENT_COLOR_LABEL = "currentColorLabel";
 
+		private static final long serialVersionUID = 1L;
+		
+		// this counter is used to create a new drawingID
+		// for each new drawing, and ensures that each drawingID
+		// from this user will be unique
+		static final AtomicLong drawingCounter = new AtomicLong(0);
+		
+		// Image where the user's drawing is stored
+		// this Image is only updated by messages received from the server
+	    private Image drawingBuffer;
+	    
+	    // this is a list of recent commands done by the user
+	    // this list will be iterated through every time a drawing command occurs
+	    //		and will be removed from whenever a response is received notifying 
+	    //		that the drawing command has been processed
+	    private List<DrawingLayer> recentDrawings;
+	    
+		private final ClientEasel canvas;
+    	private int X1,X2,Y1,Y2;
+    	
+    	public static final int DEFAULT_WIDTH = 800;
+    	public static final int DEFAULT_HEIGHT = 600;
+    	
+    	public ClientCanvas(int width, int height, ClientEasel canvas) {
+    		this.canvas = canvas;
+    		recentDrawings = Collections.synchronizedList(new ArrayList<DrawingLayer>());
+            this.setPreferredSize(new Dimension(width, height));
+            
+            addDrawingController();
+            // note: we can't call makeDrawingBuffer here, because it only
+            // works *after* this canvas has been added to a window.  Have to
+            // wait until paintComponent() is first called.
+        }
     
-    
-    /**
-     * Make a canvas.
-     * @param width width in pixels
-     * @param height height in pixels
-     */
-    public ClientCanvas(int width, int height, ClientGUI clientGUI) {
-        
-        whiteboardPanel = new ClientCanvasPanel(width,height,this);
-        
-        pencilModeButton = new JToggleButton("Pencil",  true);
-        eraseModeButton = new JToggleButton("Erase",  false);
-        lineModeButton = new JToggleButton("Line",  false);
-        shapeModeButton = new JToggleButton("Shape",  false);
-        toolButtonList = new JToggleButton[]{pencilModeButton, eraseModeButton, lineModeButton, shapeModeButton};
-        shapeFilledButton = new JToggleButton("Filled",  false);
-        shapeSelectionBox = new JComboBox<String>(SHAPE_OPTIONS);
-        widthSelectionBox = new JComboBox<String>(WIDTH_OPTIONS);
+	    /**
+	     * @see javax.swing.JComponent#paintComponent(java.awt.Graphics)
+	     */
+	    @Override
+	    public synchronized void paintComponent(Graphics g) {
+	    	
+	        // If this is the first time paintComponent() is being called,
+	        // make our drawing buffer
+	        if (drawingBuffer == null) {
+	            makeDrawingBuffer();
+	        }
+	        
+	        // draw the buffer which has been updated by the server
+	        g.drawImage(drawingBuffer, 0, 0, null);
+	        
+	        // iterate through and draw all of the client drawings 
+	        // that haven't been processed by the server yet
+	        for (DrawingLayer drawing: recentDrawings){
+	        	g.drawImage(drawing.getImage(), 0, 0, null);
+	        }
+	        
+	        // if we are in line/shape mode, draw on top of everything else 
+	        // using the coordinates being updated by the mouse listener, since the
+	        // line/shape has not been finalized yet
+	        if (canvas.getCurrentTool().equals(ClientEasel.LINE_BUTTON)){
+	        	drawPencilSegment(X1, Y1, X2, Y2, (Graphics2D) g, false);
+	        }
+	        else if (canvas.getCurrentTool().equals(ClientEasel.SHAPE_BUTTON)){
+	        	drawShapeSegment(X1, Y1, X2, Y2, (Graphics2D) g, false, 
+	        			canvas.getSelectedShape(), canvas.isShapeFilled());
+	        }
+	    }
+	    
+	    /*
+	     * Make the drawing buffer and fill it with white
+	     */
+	    private synchronized void makeDrawingBuffer() {
+	        drawingBuffer = createImage(this.getWidth(), this.getHeight());
+	        fillWithWhite((Graphics2D) drawingBuffer.getGraphics());
+	    }
+	    
+	    /*
+	     * Make the graphics entirely white.
+	     * 
+	     */
+	    private synchronized void fillWithWhite(Graphics2D g) {
+	    	
+	        g.setColor(Color.WHITE);
+	        g.fillRect(0,  0,  getWidth(), getHeight());
+	        
+	        // IMPORTANT!  every time we draw on the internal drawing buffer, we
+	        // have to notify Swing to repaint this component on the screen.
+	        this.repaint();
+	    }
+	    
+	    /*
+	     * Process a click of the erase all button 
+	     */
+	    public synchronized void eraseAll() {
+	    	DrawingLayer currentDrawing = createNewDrawing(true);
+	    	fillWithWhite((Graphics2D) currentDrawing.getImage().getGraphics());
+	    	
+	    	sendDrawingMessage(currentDrawing.createMessage());
+	    };
+	    
+	    /*
+	     * Draw a line between two points (x1, y1) and (x2, y2), specified in
+	     * pixels relative to the upper-left corner of the drawing buffer.
+	     * 
+	     * Uses information from the selected color and width
+	     */
+	    private void drawPencilSegment(int x1, int y1, int x2, int y2, Graphics2D g, boolean overrideGraphics) {
+	    	
+	    	if (!overrideGraphics){
+	        	g.setColor(canvas.getColor());
+		        g.setStroke(canvas.getStroke());
+	    	}
+	        g.drawLine(x1, y1, x2, y2);
+	        
+	        // IMPORTANT!  every time we draw on the internal drawing buffer, we
+	        // have to notify Swing to repaint this component on the screen.
+	        this.repaint();
+	    }
+	    
+	    /*
+	     * Draws temporarily between two points (x1, y1) and (x2, y2), specified in
+	     * pixels relative to the upper-left corner of the drawing buffer, but does not
+	     * finalize the draw (the draw should be finalized in a mouseReleased event)
+	     * 
+	     * Uses information from the currently selected color and width in the GUI
+	     */
+	    private void drawTempSegment(int x1, int y1, int x2, int y2) {
+	        X1=x1;
+	        X2=x2;
+	        Y1=y1;
+	        Y2=y2;
+	        // IMPORTANT!  every time we draw on the internal drawing buffer, we
+	        // have to notify Swing to repaint this component on the screen.
+	        this.repaint();
+	        
+	    }
+	    
+	    /*
+	     * Draw a shape between two points (x1, y1) and (x2, y2), specified in
+	     * pixels relative to the upper-left corner of the drawing buffer
+	     * 
+	     * Uses information from the currently selected color and width in the GUI
+	     */
+	    private void drawShapeSegment(int x1, int y1, int x2, int y2, Graphics2D g, 
+	    					boolean overrideGraphics, String shapeType, boolean fillShape) {
+	    	
+	    	if (!overrideGraphics){
+	        	g.setColor(canvas.getColor());
+		        g.setStroke(canvas.getStroke());
+	    	}
+	        
+	        if (shapeType.equals(ClientEasel.SQUARE) || shapeType.equals(ClientEasel.CIRCLE)){
+	        	Line2D line = getSquareCoordinates(x1, y1, x2, y2);
+	        	x1 = (int) line.getX1();
+	        	x2 = (int) line.getX2();
+	        	y1 = (int) line.getY1();
+	        	y2 = (int) line.getY2();
+	        }
+	        
+	        int xOrigin = Math.min(x2, x1);
+	        int yOrigin = Math.min(y2, y1);
+	        int xLength = Math.abs(x2-x1);
+	        int yLength = Math.abs(y2-y1);
+	        
+	        if (shapeType.equals(ClientEasel.RECTANGLE)){
+	        	if (fillShape){
+	        		g.fillRect(xOrigin, yOrigin, xLength, yLength);
+	        	}
+	        	else {
+	        		g.drawRect(xOrigin, yOrigin, xLength, yLength); 
+	        	}
+	        }
+	        else if (shapeType.equals(ClientEasel.OVAL)){
+	        	if (fillShape){
+	        		g.fillOval(xOrigin, yOrigin, xLength, yLength);
+	        	}
+	        	else {
+	        		g.drawOval(xOrigin, yOrigin, xLength, yLength);
+	        	}
+	        }
+	        
+	        if (shapeType.equals(ClientEasel.SQUARE)){
+	        	if (fillShape){
+	        		g.fillRect(xOrigin, yOrigin, xLength, yLength);
+	        	}
+	        	else {
+	        		g.drawRect(xOrigin, yOrigin, xLength, yLength); 
+	        	}
+	        }
+	        
+	        else if (shapeType.equals(ClientEasel.CIRCLE)){
+	        	if (fillShape){
+	        		g.fillOval(xOrigin, yOrigin, xLength, yLength);
+	        	}
+	        	else {
+	        		g.drawOval(xOrigin, yOrigin, xLength, yLength);
+	        	}
+	        }
+	        
+	        // IMPORTANT!  every time we draw on the internal drawing buffer, we
+	        // have to notify Swing to repaint this component on the screen.
+	        
+	        this.repaint();
+	        
+	    }
 
-        currentColorLabel = new JLabel();
-        currentColorLabel.setBackground(Color.black); // starting color is black
-        currentColorLabel.setMinimumSize(new Dimension(30,30));
-        currentColorLabel.setOpaque(true);
-        
-        eraseAllButton = new JButton("Erase All");
-        
-        this.clientGUI = clientGUI;
-        
-        pencilModeButton.setName(PENCIL_BUTTON);
-        eraseModeButton.setName(ERASE_BUTTON);
-        lineModeButton.setName(LINE_BUTTON);
-        shapeModeButton.setName(SHAPE_BUTTON);
-        shapeFilledButton.setName(SHAPE_FILLED_BUTTON);
-        shapeSelectionBox.setName(SHAPE_SELECTION_BOX);
-        widthSelectionBox.setName(WIDTH_SELECTION_BOX);
-        currentColorLabel.setName(CURRENT_COLOR_LABEL);
-        eraseAllButton.setName(ERASE_ALL_BUTTON);
-        
-        // set up the toolbar
-        GroupLayout layout = new GroupLayout(this);
-        this.setLayout(layout);
-        layout.setAutoCreateGaps(true);
-        layout.setAutoCreateContainerGaps(true);
-        
-        layout.setHorizontalGroup(
-        		layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-        			.addGroup(layout.createSequentialGroup()
-        					.addComponent(pencilModeButton)
-        					.addComponent(eraseModeButton)
-        					.addComponent(lineModeButton)
-        					.addComponent(shapeModeButton)
-        					.addComponent(shapeFilledButton)
-        					.addComponent(shapeSelectionBox)
-        					.addComponent(widthSelectionBox)
-        					.addComponent(currentColorLabel)
-        					.addComponent(eraseAllButton)
-        					)
-        			.addComponent(whiteboardPanel)
-        );
-        layout.setVerticalGroup(
-        		layout.createSequentialGroup()
-        			.addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-        					.addComponent(pencilModeButton)
-        					.addComponent(eraseModeButton)
-        					.addComponent(lineModeButton)
-        					.addComponent(shapeModeButton)
-        					.addComponent(shapeFilledButton)
-        					.addComponent(shapeSelectionBox)
-        					.addComponent(widthSelectionBox)
-        					.addComponent(currentColorLabel)
-        					.addComponent(eraseAllButton)
-        					)
-        			.addComponent(whiteboardPanel)
-        );
+	    
+	    /*
+	     * Erases a line between two points (x1, y1) and (x2, y2), specified in
+	     * pixels relative to the upper-left corner of the drawing buffer.
+	     * 
+	     * Uses information from the selected width
+	     */
+	    private void drawEraseSegment(int x1, int y1, int x2, int y2, Graphics2D g, boolean overrideGraphics) {
+	        
+	        g.setColor(Color.white);
+	    	if (!overrideGraphics) {
+		        g.setStroke(canvas.getStroke());
+	    	}
+	        g.drawLine(x1, y1, x2, y2);
+	        
+	        // IMPORTANT!  every time we draw on the internal drawing buffer, we
+	        // have to notify Swing to repaint this component on the screen.
+	        this.repaint();
+	    }
+	    
+	    /**
+	     * Adds a new DrawingLayer to the list of currentDrawings, and
+	     * returns it
+	     * 
+	     * @param eraseAll an optional boolean that signifies 
+	     * 		whether this Drawing erased the whole canvas
+	     * @return DrawingLayer the drawing just added
+	     */
+	    private synchronized DrawingLayer createNewDrawing() {
+	    	long drawingID = drawingCounter.getAndIncrement();
+	    	recentDrawings.add(new DrawingLayer(canvas.getUserID()+drawingID, this.getWidth(), 
+	    			this.getHeight(), canvas.getColor(), canvas.getStroke(), canvas.getCurrentTool(), 
+	    			canvas.getSelectedShape(), canvas.isShapeFilled()));
+            
+	    	return recentDrawings.get(recentDrawings.size()-1);
+	    }
+	    private synchronized DrawingLayer createNewDrawing(boolean eraseAll){
+	    	long drawingID = drawingCounter.getAndIncrement();
+	    	recentDrawings.add(new DrawingLayer(canvas.getUserID()+drawingID, this.getWidth(), 
+	    			this.getHeight(), canvas.getColor(), canvas.getStroke(), ClientEasel.ERASE_ALL_BUTTON, 
+	    			canvas.getSelectedShape(), canvas.isShapeFilled()));
+	    	return recentDrawings.get(recentDrawings.size()-1);
+	    }
+	    
+	    /**
+	     * Sends a new drawing message to the WhiteboardServer
+	     * 
+	     * @see DrawingOperationProtocol# for message formatting info
+	     * 
+	     * @param message
+	     */
+	    public synchronized void sendDrawingMessage(String message){
+	    	canvas.sendDrawingMessage(message);
+	    }
+	    
+	    /**
+	     * Reads a new drawing message from the WhiteboardServer, draws it to the
+	     * drawingBuffer, and removes it from recentDrawings if it exists
+	     * 
+	     * @see DrawingOperationProtocol# for message formatting info
+	     * 
+	     * @param message
+	     */
+	    public synchronized void receiveDrawingMessage(String message){
+	    	if (message.startsWith("joinedBoard")){
+	    		recentDrawings.clear();
+	    		fillWithWhite((Graphics2D) drawingBuffer.getGraphics());
+	    	}
+	    	else {
+		    	DrawingLayer drawing = DrawingOperationProtocol.readMessage(message);
+		    	drawToBuffer(drawing);
+		    	removeDrawingLayer(drawing.getDrawingID());
+	    	}
+	    }
+	    
+	    /**
+	     * Draws the DrawingLayer directly to the drawingBuffer,
+	     * 
+	     * @param drawing the DrawingLayer to draw to the buffer
+	     */
+	    private synchronized void drawToBuffer(DrawingLayer drawing){
+	    	ArrayList<Point> pointList = drawing.getPointList();
+	    	Graphics2D g = (Graphics2D) drawingBuffer.getGraphics();
+	    	
+	    	g.setStroke(drawing.getStroke());
+	    	g.setColor(drawing.getColor());
+	    	
+	    	if (drawing.getDrawingType().equals(ClientEasel.PENCIL_BUTTON) || drawing.getDrawingType().equals(ClientEasel.LINE_BUTTON)){
+				for (int i=0; i<pointList.size()-1; i++){
+					drawPencilSegment(pointList.get(i).x, pointList.get(i).y
+							,pointList.get(i+1).x, pointList.get(i+1).y, g, true);
+				}
+			}
+			else if (drawing.getDrawingType().equals(ClientEasel.ERASE_BUTTON)){
+				for (int i=0; i<pointList.size()-1; i++){
+					drawEraseSegment(pointList.get(i).x, pointList.get(i).y
+							,pointList.get(i+1).x, pointList.get(i+1).y, g, true);
+				}
+			}
+			else if (drawing.getDrawingType().equals(ClientEasel.SHAPE_BUTTON)){
+				drawShapeSegment(pointList.get(0).x, pointList.get(0).y ,pointList.get(1).x, 
+						pointList.get(1).y, g, true, drawing.getShapeType(), drawing.getShapeFilled());
+			}
+			else {
+				fillWithWhite(g);
+			}
+	    }
+	    
+	    /**
+	     * Removes the drawing from the list of recentDrawings
+	     * 
+	     * @param drawingID the drawing to be removed
+	     */
+	    private synchronized void removeDrawingLayer(String drawingID){
+	    	int drawingIndex = -1;
+	    	for (DrawingLayer drawing:recentDrawings){
+	    		if (drawing.getDrawingID().equals(drawingID)){
+	    			drawingIndex = recentDrawings.indexOf(drawing);
+	    		}
+	    	}
+	    	if (drawingIndex != -1){
+	    		recentDrawings.remove(drawingIndex);
+	    	}
+	    	
+	    	// for debugging
+	    	System.out.println("Removed drawing "+drawingID);
+	    }
 
-        //finish toolbar setup
-        
-        // this ActionListener is used to handle the switching between tools
-        ActionListener toggleButton = new ActionListener() {
-        	public void actionPerformed(ActionEvent ae) {
-        		final ActionEvent action = ae;
-            	// invokeLater because we are making changes to the GUI
-            	SwingUtilities.invokeLater(new Runnable() {
-            		public void run() {
-            			toggleSelectedTool((JToggleButton) action.getSource());
-            		}
-            	});
-        	}
-        };
-        
-        // add the toggleButton ActionListener to the tool options
-        pencilModeButton.addActionListener(toggleButton);
-        eraseModeButton.addActionListener(toggleButton);
-        lineModeButton.addActionListener(toggleButton);
-        shapeModeButton.addActionListener(toggleButton);
-        
-        // set up a listener to the color selector
-        currentColorLabel.addMouseListener(new MouseAdapter() {
-        	public void mouseReleased(MouseEvent ae) {
-        		Color newColor = JColorChooser.showDialog(ClientCanvas.this,
-        												"Choose Drawing Color",
-        												getColor());
-        		
-        		if (!(newColor==null)) {
-        			currentColorLabel.setBackground(newColor);
-        		}
-        	}
-        });
-        
-        // set up a listener to the erase all button
-        eraseAllButton.addActionListener(new ActionListener() {
-        	public void actionPerformed(ActionEvent ae){
-        		String[] options = {"Yes, erase everything", "No, don't erase everything"};
-        		
-        		int n = JOptionPane.showOptionDialog(ClientCanvas.this,
-        				"Are you sure you want to erase everything? This will clear the whiteboard " +
-        						"for all users.",
-        						"Warning",
-        						JOptionPane.YES_NO_OPTION,
-        					    JOptionPane.WARNING_MESSAGE,
-        					    null,
-        					    options,
-        					    options[0]);
-        		if (n==0){
-        			whiteboardPanel.eraseAll();
-        		}
-        		
-        	}
-        });
-        
-        
-        
-    }
-    
-    /**
-     * Will switch the selected tool to the one described by "button" by
-     * deselecting the other toggle buttons
-     * 
-     * Current tools that are affected by this:
-     * pencilModeButton
-     * eraseModeButton
-     * lineModeButton
-     * shapeModeButton
-     * 
-     * @param button JToggleButton to switch the selected tool to
-     */
-    private void toggleSelectedTool(JToggleButton button){
-    	if (button.isSelected()){
-    		for (JToggleButton otherButton: toolButtonList){
-    			if (!otherButton.equals(button)){
-    				otherButton.setSelected(false);
-    			}
-    		}
-    	}
-    	else {
-    		button.setSelected(true);
-    	}
-    };
-    
-    /**
-     * Returns a Color object representing the currently selected color
-     * 
-     * @return Color object representing the currently selected color in the interface
-     */
-    public Color getColor(){
-    	return new Color(currentColorLabel.getBackground().getRGB());
-    }
-    
-    /**
-     * Returns a Stroke object representing the currently selected stroke type
-     * 
-     * @return Stroke object representing the currently selected stroke type in the interface
-     */
-    public Stroke getStroke(){
-    	return new BasicStroke(Integer.parseInt(WIDTH_OPTIONS[widthSelectionBox.getSelectedIndex()]
-    			.replaceAll("px", "")),
-    			BasicStroke.CAP_ROUND, 
-    			BasicStroke.JOIN_ROUND);
-    }
-    
-    /**
-     * Returns a String representing the currently selected shape type
-     * 
-     * @return String object representing the currently selected shape type in the interface
-     */
-    public String getSelectedShape(){
-    	return SHAPE_OPTIONS[shapeSelectionBox.getSelectedIndex()];
-    }
-    
-    /**
-     * Returns a String representing the currently selected tool
-     * 
-     * @return String representing the currently selected tool's name in the interface
-     */
-    public String getCurrentTool(){
-    	for (JToggleButton button: toolButtonList){
-    		if (button.isSelected()) return button.getName();
-    	}
-    	// should never get here, but if it does, default to being in pencil mode
-    	return pencilModeButton.getName();
-    }
-    
-    /**
-     * Returns a boolean representing whether the shape filled button is selected tool
-     * 
-     * @return Boolean whether the shape should be filled
-     */
-    public boolean isShapeFilled(){
-    	return shapeFilledButton.isSelected();
-    }
-    
-    /**
-     * Returns a String representing the userID of the client
-     * 
-     * @return String object representing the userID of the client
-     */
-    public String getUserID(){
-    	return userID;
-    }
-    
-    /**
-     * Sends a new drawing message to the WhiteboardServer
-     * 
-     * @see DrawingOperationProtocol# for message formatting info
-     * 
-     * @param message
-     */
-    public synchronized void sendDrawingMessage(String message){
-    	clientGUI.sendMessage(message);
-    }
-    
-    /**
-     * Receives a new drawing message to the WhiteboardServer
-     * 
-     * @see DrawingOperationProtocol# for message formatting info
-     * 
-     * @param message
-     */
-    public synchronized void receiveDrawingMessage(String message){
-    	final String drawingMessage = message;
-    	SwingUtilities.invokeLater(new Runnable() {
-    		@Override
-			public void run() {
-    			whiteboardPanel.receiveDrawingMessage(drawingMessage);
-    		}
-    	});
+	    
+	    /**
+	     * Converts two points to represent the diagonal of a square 
+	     * (x1,y1) remains as one corner of the square
+	     * 
+	     * @param x1
+	     * @param y1
+	     * @param x2
+	     * @param y2
+	     * @return Line2D object representing the x's and y's to use for 
+	     * 			drawing a square-like object
+	     */
+	    public static Line2D getSquareCoordinates(int x1, int y1, int x2, int y2){
+	    	
+	    	int xOrigin = Math.min(x2, x1);
+	        int yOrigin = Math.min(y2, y1);
+	        int xLength = Math.abs(x2-x1);
+	        int yLength = Math.abs(y2-y1);
+
+	        // make changes to the points to force equal sides
+	        if (x2>x1&&y2>y1){// 4th quadrant
+	        	if (xLength<=yLength){
+	        		yLength = xLength;
+	        	}
+	        	else{
+	        		xLength = yLength;
+	        	}
+	        }
+	        else if (x2<x1&&y2>y1){// 3rd quadrant
+	        	if (xLength<=yLength){
+	        		yLength = xLength;
+	        	}
+	        	else{
+	        		xOrigin = x1-yLength;
+	        		xLength = yLength;
+	        	}
+	        }
+	        else if (x2<x1&&y2<y1){// 2nd quadrant
+	        	if (xLength<=yLength){
+	        		yOrigin = y1-xLength;
+	        		yLength = xLength;
+	        	}
+	        	else{
+	        		xOrigin = x1-yLength;
+	        		xLength = yLength;
+	        	}
+	        }
+	        else if (x2>x1&&y2<y1){// 1st quadrant
+	        	if (xLength<=yLength){
+	        		yOrigin = y1-xLength;
+	        		yLength = xLength;
+	        	}
+	        	else{
+	        		xLength = yLength;
+	        	}
+	        }
+	    	
+	    	return new Line2D.Float(new Point(xOrigin, yOrigin), new Point(xOrigin+xLength, yOrigin+yLength));
+	    }
+
+	    
+	    /*
+	     * Add the mouse listener that supports the user's drawing.
+	     */
+	    private void addDrawingController() {
+	        DrawingController controller = new DrawingController();
+	        addMouseListener(controller);
+	        addMouseMotionListener(controller);
+	    }
+	    
+	    /*
+	     * DrawingController handles the user's drawing and mouse events.
+	     */
+	    private class DrawingController implements MouseListener, MouseMotionListener {
+	        // store the coordinates of the last mouse event, so we can
+	        // draw a line segment from that last point to the point of the next mouse event.
+	        private int lastX, lastY;
+	        private DrawingLayer currentDrawing;     
+	
+	        /*
+	         * When mouse button is pressed down, start drawing.
+	         */
+	        public void mousePressed(MouseEvent e) {
+	            lastX = e.getX();
+	            lastY = e.getY();
+	            currentDrawing = createNewDrawing();
+	            currentDrawing.addPoint(lastX, lastY);
+	        }
+	
+	        /*
+	         * When mouse moves while a button is pressed down,
+	         * draw depending on what tool is selected.
+	         */
+	        public void mouseDragged(MouseEvent e) {
+	        	// Take the min to prevent from drawing off of the screen
+	            int x = Math.max(Math.min(e.getX(),getWidth()),0);
+	            int y = Math.max(Math.min(e.getY(),getHeight()),0);
+	            
+	            // Get the current drawing layer
+	            Graphics2D currentDrawingGraphics = (Graphics2D) currentDrawing.getImage().getGraphics();
+	            
+	            // if we are in pencil/erase, we want to keep a running list of points, so
+	            // continue adding to the drawings list of points
+	            if (ClientEasel.PENCIL_BUTTON.equals(currentDrawing.getDrawingType())){
+		            drawPencilSegment(lastX, lastY, x, y, currentDrawingGraphics, false);
+		            lastX = x;
+		            lastY = y;
+		            currentDrawing.addPoint(x, y);
+	            }
+	            else if (ClientEasel.ERASE_BUTTON.equals(currentDrawing.getDrawingType())){
+	            	drawEraseSegment(lastX, lastY, x, y, currentDrawingGraphics, false);
+		            lastX = x;
+		            lastY = y;
+		            currentDrawing.addPoint(x, y);
+	            }
+	            else if (ClientEasel.LINE_BUTTON.equals(currentDrawing.getDrawingType())){
+	            	drawTempSegment(lastX, lastY, x, y);
+	            }
+	            else if (ClientEasel.SHAPE_BUTTON.equals(currentDrawing.getDrawingType())){
+	            	drawTempSegment(lastX, lastY, x, y);
+	            }
+	        }
+	        
+	        public void mouseReleased(MouseEvent e) { 
+	        	// Take the min to prevent from drawing off of the screen
+	        	int x = Math.max(Math.min(e.getX(),getWidth()),0);
+	            int y = Math.max(Math.min(e.getY(),getHeight()),0);
+	            
+	            // Get the current drawing layer
+	            Graphics2D currentDrawingGraphics = (Graphics2D) currentDrawing.getImage().getGraphics();
+	     	            
+	            if (ClientEasel.PENCIL_BUTTON.equals(currentDrawing.getDrawingType())){
+		            drawPencilSegment(lastX, lastY, lastX, lastY, currentDrawingGraphics, false);
+	            }
+	            else if (ClientEasel.ERASE_BUTTON.equals(currentDrawing.getDrawingType())){
+	            	drawEraseSegment(lastX, lastY, lastX, lastY, currentDrawingGraphics, false);
+	            }
+	            else if (ClientEasel.LINE_BUTTON.equals(currentDrawing.getDrawingType())){
+	            	drawPencilSegment(lastX, lastY, x, y, currentDrawingGraphics, false);
+	            }
+	            else if (ClientEasel.SHAPE_BUTTON.equals(currentDrawing.getDrawingType())){
+	            	drawShapeSegment(X1, Y1, X2, Y2, currentDrawingGraphics, false, 
+		        			canvas.getSelectedShape(), canvas.isShapeFilled());
+	            }
+	            currentDrawing.addPoint(x, y);
+	            
+	            sendDrawingMessage(currentDrawing.createMessage());
+	            
+	            X1=X2=Y1=Y2=Integer.MAX_VALUE;// set these to be arbitrarily off of the drawing screen once weve finalized the drawing
+	        }
+	
+	        // Ignore all these other mouse events.
+	        public void mouseMoved(MouseEvent e) { }
+	        public void mouseClicked(MouseEvent e) { }
+	        public void mouseEntered(MouseEvent e) { }
+	        public void mouseExited(MouseEvent e) { }
+	    }
     }
 
-
-}

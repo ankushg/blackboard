@@ -11,8 +11,8 @@ import java.util.LinkedList;
 import java.util.NoSuchElementException;
 import java.util.Queue;
 
+import client.ClientEasel;
 import client.ClientCanvas;
-import client.ClientCanvasPanel;
 
 /**
  * A class to serve as the transition between DrawingLayers and
@@ -56,14 +56,14 @@ public class DrawingOperationProtocol {
 		ArrayList<Point> pointList = drawing.getPointList();
 		
 		// determine which type of drawing operation we should send
-		if (drawing.getDrawingType().equals(ClientCanvas.PENCIL_BUTTON) || drawing.getDrawingType().equals(ClientCanvas.LINE_BUTTON)){
+		if (drawing.getDrawingType().equals(ClientEasel.PENCIL_BUTTON) || drawing.getDrawingType().equals(ClientEasel.LINE_BUTTON)){
 			out += LINE_MESSAGE;
 		}
-		else if (drawing.getDrawingType().equals(ClientCanvas.ERASE_BUTTON)){
+		else if (drawing.getDrawingType().equals(ClientEasel.ERASE_BUTTON)){
 			out += ERASE_MESSAGE;
 		}
-		else if (drawing.getDrawingType().equals(ClientCanvas.SHAPE_BUTTON)){
-			if (drawing.getShapeType().equals(ClientCanvas.CIRCLE) || drawing.getShapeType().equals(ClientCanvas.OVAL)){
+		else if (drawing.getDrawingType().equals(ClientEasel.SHAPE_BUTTON)){
+			if (drawing.getShapeType().equals(ClientEasel.CIRCLE) || drawing.getShapeType().equals(ClientEasel.OVAL)){
 				out += OVAL_MESSAGE;
 			}
 			else{
@@ -88,9 +88,9 @@ public class DrawingOperationProtocol {
 		}
 		else{
 			out += "[";
-			if ((drawing.getDrawingType().equals(ClientCanvas.SHAPE_BUTTON)) && 
-					(drawing.getShapeType().equals(ClientCanvas.CIRCLE) || drawing.getShapeType().equals(ClientCanvas.SQUARE))){
-				Line2D line = ClientCanvasPanel.getSquareCoordinates(pointList.get(0).x, pointList.get(0).y, 
+			if ((drawing.getDrawingType().equals(ClientEasel.SHAPE_BUTTON)) && 
+					(drawing.getShapeType().equals(ClientEasel.CIRCLE) || drawing.getShapeType().equals(ClientEasel.SQUARE))){
+				Line2D line = ClientCanvas.getSquareCoordinates(pointList.get(0).x, pointList.get(0).y, 
 																		pointList.get(1).x, pointList.get(1).y);
 				out +=(int) line.getX1()+" "+(int) line.getY1()+" "+(int) line.getX2()+" "+(int) line.getY2();
 			}
@@ -131,21 +131,21 @@ public class DrawingOperationProtocol {
                 String flag = arguments.remove();
                 try {
                 	if (flag.equals(ERASE_ALL_MESSAGE)){
-                		drawingType = ClientCanvas.ERASE_ALL_BUTTON;
+                		drawingType = ClientEasel.ERASE_ALL_BUTTON;
                 	}
                 	else if (flag.equals(LINE_MESSAGE)){
-                		drawingType = ClientCanvas.LINE_BUTTON;
+                		drawingType = ClientEasel.LINE_BUTTON;
                 	}
                 	else if (flag.equals(ERASE_MESSAGE)){
-                		drawingType = ClientCanvas.ERASE_BUTTON;
+                		drawingType = ClientEasel.ERASE_BUTTON;
                 	}
                 	else if (flag.equals(OVAL_MESSAGE)){
-                		drawingType = ClientCanvas.SHAPE_BUTTON;
-                		shapeType = ClientCanvas.OVAL;
+                		drawingType = ClientEasel.SHAPE_BUTTON;
+                		shapeType = ClientEasel.OVAL;
                 	}
                 	else if (flag.equals(RECTANGLE_MESSAGE)){
-                		drawingType = ClientCanvas.SHAPE_BUTTON;
-                		shapeType = ClientCanvas.RECTANGLE;
+                		drawingType = ClientEasel.SHAPE_BUTTON;
+                		shapeType = ClientEasel.RECTANGLE;
                 	}
                 	
                 	else if (flag.equals("-c")) {
@@ -190,7 +190,7 @@ public class DrawingOperationProtocol {
             System.err.println("Improperly Formatted Message, see DrawingOperationProtocol for more info");
         }
 		
-		DrawingLayer out = new DrawingLayer(drawingID, ClientCanvasPanel.DEFAULT_WIDTH, ClientCanvasPanel.DEFAULT_HEIGHT,
+		DrawingLayer out = new DrawingLayer(drawingID, ClientCanvas.DEFAULT_WIDTH, ClientCanvas.DEFAULT_HEIGHT,
 								color, stroke, drawingType, shapeType, shapeFilled);
 		for (Point point: pointList){
 			out.addPoint(point.x, point.y);

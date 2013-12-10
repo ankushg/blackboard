@@ -34,12 +34,12 @@ public class ClientGUI extends JFrame {
 
 	public static final String[] SERVER_MESSAGE_LIST = { CURRENT_BOARDS, USER_QUIT, USER_JOINED, USERNAME,
 			USERNAME_CHANGED, BOARD_CHANGED, NEW_BOARD};
-	private final ClientCanvas canvas;
+	private final ClientEasel canvas;
 	private final ClientInfoPanel infoPanel;
 
 	public ClientGUI() throws IOException {
-		canvas = new ClientCanvas(ClientCanvasPanel.DEFAULT_WIDTH,
-				ClientCanvasPanel.DEFAULT_HEIGHT, this);
+		canvas = new ClientEasel(ClientCanvas.DEFAULT_WIDTH,
+				ClientCanvas.DEFAULT_HEIGHT, this);
 		infoPanel = new ClientInfoPanel(this);
 		this.setTitle("Powerboard 3000");
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
