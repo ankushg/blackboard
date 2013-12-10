@@ -60,18 +60,18 @@ public class ClientInfoPanel extends JPanel{
 	                groupLayout.createParallelGroup()
 	                    .addComponent(serverInfo)
 	                    .addComponent(boardList)
+	                    .addComponent(newBoard)
 	                    .addComponent(userInfo)
 	                    .addComponent(userList)
-	                    .addComponent(newBoard)
                 		.addComponent(userID)
                 		.addComponent(changeName));
 	            groupLayout.setVerticalGroup(
 	                groupLayout.createSequentialGroup()
 	                    .addComponent(serverInfo)
 	                    .addComponent(boardList)
+	                    .addComponent(newBoard)
 	                    .addComponent(userInfo)
 	                    .addComponent(userList)
-	                    .addComponent(newBoard)
                 		.addComponent(userID)
                 		.addComponent(changeName));
 	        
@@ -133,29 +133,20 @@ public class ClientInfoPanel extends JPanel{
 	    	if(message.startsWith(ClientGUI.USER_JOINED)){
 	    		userListModel.addElement(message.substring(11));
 	    		System.out.println(message);
-	    	}
-	    	if(message.startsWith(ClientGUI.USER_QUIT)){
+	    	}else if(message.startsWith(ClientGUI.USER_QUIT)){
 	    		userListModel.removeElement(message.substring(9));
 	    		System.out.println(message);
-	    	}
-	    	if(message.startsWith(ClientGUI.USERNAME)){
+	    	}else if(message.startsWith(ClientGUI.USERNAME)){
 	    		userID.setText("Your username is: " + message.substring(9));
 	    		System.out.println(message);
-	    	}
-	    	if(message.startsWith(ClientGUI.USERNAME_CHANGED)){
+	    	} else if(message.startsWith(ClientGUI.USERNAME_CHANGED)){
 	    		String names[] = message.split(" ");
 				userID.setText("Your username is: " + names[2]);
 	    		System.out.println(message);
-	    	}
-	    
-    		if (message.startsWith(ClientGUI.BOARD_CHANGED)) {
-    			// TODO: clear the actual drawing
-    		}
-    		if (message.startsWith(ClientGUI.NEW_BOARD)) {
+	    	} else if (message.startsWith(ClientGUI.NEW_BOARD)) {
     			String[] boards = message.split(" ");
     			boardListModel.addElement(boards[1]);
-    		}
-    		if (message.startsWith(ClientGUI.CURRENT_BOARDS)) {
+    		}else if (message.startsWith(ClientGUI.CURRENT_BOARDS)) {
     			String[] boards = message.split(" ");
     			for (int i = 1; i < boards.length; i++) {
     				boardListModel.addElement(boards[i]);
