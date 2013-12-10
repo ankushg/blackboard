@@ -188,6 +188,19 @@ public class WhiteboardServer {
     }
 
     /**
+     * Sends message to ALL threads (but adds it to no transcript)
+     * 
+     * @param message
+     */
+    private synchronized void globalMessage(String message) {
+        synchronized (clientThreads) {
+            for (WhiteboardThread w : clientThreads) {
+                w.sendMessage(message);
+            }
+        }
+    }
+
+    /**
      * Sends message to any thread working on the given board and adds it to the
      * board's transcript.
      * 
@@ -211,10 +224,8 @@ public class WhiteboardServer {
      *         operation (i.e., needs to be echoed to every other thread)
      */
     private static boolean isClientOperation(String input) {
-        String regex = "(changeBoard [a-zA-Z0-9_]+)"
-                    + "|(setUsername [a-zA-Z0-9_]+)"
-                    + "|(listBoards)"
-                    + "|(getUsername)";
+        String regex = "(changeBoard [a-zA-Z0-9_]+)" + "|(setUsername [a-zA-Z0-9_]+)" + "|(listBoards)"
+                + "|(getUsername)";
         return input.matches(regex);
     }
 
@@ -228,7 +239,7 @@ public class WhiteboardServer {
      *            the client from which the input originates
      */
     private synchronized void handleClientOperation(String input, Client client) {
-        assert isClientOperation(input);
+//        assert isClientOperation(input);
         WhiteboardThread thread = getThread(client);
         assert thread != null;
 
@@ -314,6 +325,7 @@ public class WhiteboardServer {
             synchronized (boards) {
                 if (!boards.containsKey(newBoard)) {
                     boards.put(newBoard, new ArrayList<String>());
+                    globalMessage("newBoard " + newBoard);
                 }
             }
             thread.sendMessage(String.format("joinedBoard %s %s", oldBoard, newBoard));
@@ -353,6 +365,7 @@ public class WhiteboardServer {
                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                     handleClientOperation("getUsername", client);
+                    handleClientOperation("l", client);
                     joinBoard(client, "default");
 
                     try {

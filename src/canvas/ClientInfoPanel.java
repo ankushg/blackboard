@@ -1,31 +1,18 @@
 package canvas;
 
-import server.WhiteboardServer;
-import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.Socket;
 
 import javax.swing.DefaultListModel;
 import javax.swing.GroupLayout;
-import javax.swing.JButton;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
-import javax.swing.JTable;
 import javax.swing.JTextField;
-import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
-import javax.swing.GroupLayout.Alignment;
-import javax.swing.LayoutStyle.ComponentPlacement;
-import javax.swing.table.DefaultTableModel;
 
 /**
  * A JPanel that manages all of the information about boards/users that are
@@ -42,10 +29,10 @@ public class ClientInfoPanel extends JPanel{
 		private static final long serialVersionUID = 1L;
 		private final JLabel serverInfo;
 		private final JLabel currentBoard;
-		private final DefaultListModel listModel;
-		private final DefaultListModel userListModel;
-		private final JList boardList;
-		private final JList userList;
+		private final DefaultListModel<String> boardListModel;
+		private final DefaultListModel<String> userListModel;
+		private final JList<String> boardList;
+		private final JList<String> userList;
 		private final JTextField newBoard;
 		private final ClientGUI clientGUI;
 		private final JTextField changeName;
@@ -62,11 +49,11 @@ public class ClientInfoPanel extends JPanel{
 	    	userInfo = new JLabel("Connected users in your current board");
 	    	currentBoard = new JLabel("");
 	    	newBoard = new JTextField(10);
-	    	listModel = new DefaultListModel();
-	    	userListModel = new DefaultListModel();
-	    	boardList = new JList(listModel);
-	    	
-	        userList = new JList(userListModel);
+	    	boardListModel = new DefaultListModel<>();
+	    	userListModel = new DefaultListModel<>();
+	    	boardList = new JList<>(boardListModel);
+	        userList = new JList<>(userListModel);
+	        
 	        GroupLayout groupLayout = new GroupLayout(this);
 	        this.setLayout(groupLayout);
 	        groupLayout.setHorizontalGroup(
@@ -100,14 +87,8 @@ public class ClientInfoPanel extends JPanel{
 	        		String input = newBoard.getText();
 	        		if(input != ""){
 	        			output = "changeBoard " + input;
-	        			if(isUnique(input)){
-	        				listModel.addElement(input);
-	        			}
 	        		}
-//	        		else{
-//	        			output = "changeBoard " + boardList.getSelectedValue();
-//	        			boardList.clearSelection();
-//	        		}
+
 	        		userListModel.clear();
 	        		newBoard.setText("");
 	        		clientGUI.sendMessage(output);
@@ -120,10 +101,10 @@ public class ClientInfoPanel extends JPanel{
 			        JList list = (JList)evt.getSource();
 			        if (evt.getClickCount() == 2) {
 			            int index = list.locationToIndex(evt.getPoint());
-				        output = (String) listModel.getElementAt(index);
+				        output = (String) boardListModel.getElementAt(index);
 			        } else if (evt.getClickCount() == 3) {   // Triple-click
 			            int index = list.locationToIndex(evt.getPoint());
-				        output = (String) listModel.getElementAt(index);
+				        output = (String) boardListModel.getElementAt(index);
 			        }
 	        		userListModel.clear();
 	        		clientGUI.sendMessage("changeBoard " + output);
@@ -143,7 +124,7 @@ public class ClientInfoPanel extends JPanel{
 //			userListModel.addElement()
 	    }
 	    
-	    public synchronized void receiveServerMessage(String message){
+	    protected synchronized void receiveServerMessage(String message){
 	    	final String serverMessage = message;
 	    	SwingUtilities.invokeLater(new Runnable() {
 	    		@Override
@@ -153,7 +134,7 @@ public class ClientInfoPanel extends JPanel{
 	    	});
 	    }
 
-	    public synchronized void parseUsers(String message){
+	    protected synchronized void parseUsers(String message){
 	    	if(message.startsWith(ClientGUI.USER_JOINED)){
 	    		userListModel.addElement(message.substring(11));
 	    		System.out.println(message);
@@ -171,20 +152,28 @@ public class ClientInfoPanel extends JPanel{
 				userID.setText("Your username is: " + names[2] + " change username: ");
 	    		System.out.println(message);
 	    	}
-	    	if(message.startsWith(ClientGUI.BOARD_CHANGED)){
-	    		String[] boards = message.split(" ");
-	    		for(int i=1; i<boards.length; i++)
-	    			listModel.addElement(boards[i]);
-	    	}
+	    
+    		if (message.startsWith(ClientGUI.BOARD_CHANGED)) {
+    			// TODO: clear the actual drawing
+    		}
+    		if (message.startsWith(ClientGUI.NEW_BOARD)) {
+    			String[] boards = message.split(" ");
+    			boardListModel.addElement(boards[1]);
+    		}
+    		if (message.startsWith(ClientGUI.CURRENT_BOARDS)) {
+    			String[] boards = message.split(" ");
+    			for (int i = 1; i < boards.length; i++) {
+    				boardListModel.addElement(boards[i]);
+    			}
+    		}
 	    }
 	    
-	    public boolean isUnique(String input){
-	    	for(int i=0; i<listModel.getSize(); i++){
-	    		if(input.equals(listModel.getElementAt(i))){
+	    public boolean isNewBoard(String board){
+	    	for(int i=0; i<boardListModel.getSize(); i++){
+	    		if(board.equals(boardListModel.getElementAt(i))){
 	    			return false;
 	    		}
 	    	}
 	    	return true;
 	    }
-
 }

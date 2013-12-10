@@ -1,31 +1,20 @@
 package canvas;
 
 import java.awt.Container;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.ArrayList;
 
 import javax.swing.Box;
-import javax.swing.DefaultListModel;
 import javax.swing.GroupLayout;
-import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
-import javax.swing.GroupLayout.Alignment;
-import javax.swing.LayoutStyle.ComponentPlacement;
-import javax.swing.SwingWorker;
-import javax.swing.table.DefaultTableModel;
 
 public class ClientGUI extends JFrame {
 
@@ -38,7 +27,10 @@ public class ClientGUI extends JFrame {
 	public static final String USERNAME = "username ";
 	public static final String USERNAME_CHANGED = "usernameChanged ";
 	public static final String BOARD_CHANGED = "boardChanged ";
-	public static final String[] SERVER_MESSAGE_LIST = {CURRENT_BOARDS, USER_QUIT, USER_JOINED, USERNAME, USERNAME_CHANGED, BOARD_CHANGED};
+	public static final String NEW_BOARD = "newBoard ";
+
+	public static final String[] SERVER_MESSAGE_LIST = { CURRENT_BOARDS, USER_QUIT, USER_JOINED, USERNAME,
+			USERNAME_CHANGED, BOARD_CHANGED, NEW_BOARD};
 	private final ClientCanvas canvas;
 	private final ClientInfoPanel infoPanel;
 
