@@ -115,8 +115,11 @@ public class ClientCanvasPanel extends JPanel{
 	     * Process a click of the erase all button 
 	     */
 	    public synchronized void eraseAll() {
-	    	DrawingLayer currentDrawing = createNewDrawing();
-	    	fillWithWhite((Graphics2D) currentDrawing.getImage().getGraphics());			
+	    	DrawingLayer currentDrawing = createNewDrawing(true);
+	    	fillWithWhite((Graphics2D) currentDrawing.getImage().getGraphics());
+	    	
+	    	//SEND MESSAGE HERE TOO
+	    	System.out.println(currentDrawing.createMessage());
 	    };
 	    
 	    /*
@@ -260,6 +263,13 @@ public class ClientCanvasPanel extends JPanel{
 	    			this.getHeight(), canvas.getColor(), canvas.getStroke(), canvas.getCurrentTool(), 
 	    			canvas.getSelectedShape(), canvas.isShapeFilled()));
             
+	    	return recentDrawings.get(recentDrawings.size()-1);
+	    }
+	    private synchronized DrawingLayer createNewDrawing(boolean eraseAll){
+	    	drawingCounter += 1;
+	    	recentDrawings.add(new DrawingLayer(canvas.getUserID()+drawingCounter, this.getWidth(), 
+	    			this.getHeight(), canvas.getColor(), canvas.getStroke(), canvas.ERASE_ALL_BUTTON, 
+	    			canvas.getSelectedShape(), canvas.isShapeFilled()));
 	    	return recentDrawings.get(recentDrawings.size()-1);
 	    }
 	    

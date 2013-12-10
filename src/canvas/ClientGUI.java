@@ -45,66 +45,57 @@ public class ClientGUI extends JFrame{
 	public ClientGUI(){
 		username = new JLabel("Please enter your username");
 		usernameButton = new JButton("Set username");
-		newUsername = new JTextField();
+		newUsername = new JTextField(10);
 		port = new JLabel("Please enter your port number");
-		newPort = new JTextField();
+		newPort = new JTextField(10);
 		portButton = new JButton("Set port number");
 		ip = new JLabel("Please enter your IP address");
-		newIp = new JTextField();
+		newIp = new JTextField(10);
 		ipButton = new JButton("Set IP address");
 		connectServer = new JButton("Connect to server");
 		
         Container initialPanel = this.getContentPane();
         GroupLayout layout = new GroupLayout(initialPanel);
         layout.setHorizontalGroup(
-            layout.createParallelGroup(Alignment.LEADING)
-                .addGroup(layout.createSequentialGroup()
-                    .addGroup(layout.createParallelGroup(Alignment.LEADING)
-                        .addGroup(layout.createSequentialGroup()
-                            .addContainerGap()
-                            .addComponent(port))
-                        .addGroup(layout.createSequentialGroup()
-                            .addContainerGap()
-                            .addComponent(username))
-                        .addGroup(layout.createSequentialGroup()
-                            .addContainerGap()
-                            .addComponent(ip)))
-                        .addGroup(layout.createSequentialGroup()
-                            .addContainerGap()
-                            .addComponent(connectServer))
-                    .addPreferredGap(ComponentPlacement.RELATED)
-                    .addGroup(layout.createParallelGroup(Alignment.LEADING, false)
-                        .addComponent(newIp)
-                        .addComponent(newPort)
-                        .addComponent(newUsername, 48, 48, Short.MAX_VALUE))
-                    .addPreferredGap(ComponentPlacement.RELATED)
-                    .addGroup(layout.createParallelGroup(Alignment.LEADING)
-                        .addGroup(layout.createParallelGroup(Alignment.TRAILING, false)
-                            .addComponent(ipButton, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(portButton, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                        .addComponent(usernameButton, GroupLayout.DEFAULT_SIZE, 145, Short.MAX_VALUE))
-                    .addContainerGap())
-        );
+            layout.createParallelGroup(GroupLayout.Alignment.CENTER)
+            	.addGroup(layout.createSequentialGroup()
+            			.addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+								.addComponent(username)
+								.addComponent(port)
+								.addComponent(ip)
+    					)
+    					.addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+	    					.addComponent(newUsername)
+	    					.addComponent(newPort)
+	    					.addComponent(newIp)	
+    					)
+    					.addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+	    					.addComponent(usernameButton)
+	    					.addComponent(ipButton)
+	    					.addComponent(portButton)
+	    				)
+    			)
+    			.addComponent(connectServer)
+    	);
+                
         layout.setVerticalGroup(
-            layout.createParallelGroup(Alignment.LEADING)
-                .addGroup(layout.createSequentialGroup()
-                    .addGroup(layout.createParallelGroup(Alignment.BASELINE)
-                        .addComponent(username)
-                        .addComponent(usernameButton)
-                        .addComponent(newUsername, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                    .addPreferredGap(ComponentPlacement.RELATED)
-                    .addGroup(layout.createParallelGroup(Alignment.BASELINE)
-                        .addComponent(port)
-                        .addComponent(newPort, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                        .addComponent(portButton))
-                    .addPreferredGap(ComponentPlacement.RELATED)
-                    .addGroup(layout.createParallelGroup(Alignment.BASELINE)
-                        .addComponent(ip)
-                        .addComponent(newIp, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                        .addComponent(ipButton))
-                    .addPreferredGap(ComponentPlacement.RELATED)
-                    .addGroup(layout.createParallelGroup(Alignment.BASELINE)
-                    	.addComponent(connectServer)))
+        	layout.createSequentialGroup()
+    			.addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+    					.addComponent(username)
+    					.addComponent(newUsername)
+    					.addComponent(usernameButton)
+    					)
+    			.addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+    					.addComponent(port)
+    					.addComponent(newPort)
+    					.addComponent(portButton)
+    					)
+    			.addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+    					.addComponent(ip)
+    					.addComponent(newIp)
+    					.addComponent(ipButton)
+    					)
+    			.addComponent(connectServer)
         );
         initialPanel.setLayout(layout);
         layout.setAutoCreateGaps(true);
@@ -138,14 +129,21 @@ public class ClientGUI extends JFrame{
 				} catch (IOException e1) {
 					e1.printStackTrace();
 				}
-        		w.print("setUsername " + userID);
-        		MainFrame main;
-				try {
-					main = new MainFrame();
-	        		main.setVisible(true);
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
+        		w.println("setUsername " + userID);
+        		
+        		SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+		        		MainFrame main;
+						try {
+							
+							main = new MainFrame();
+							System.out.println("HEre");
+			        		main.setVisible(true);
+						} catch (IOException e1) {
+							e1.printStackTrace();
+						}
+                    }
+        		});
         	}
         });
 
@@ -153,6 +151,8 @@ public class ClientGUI extends JFrame{
 	
 	public class MainFrame extends JFrame
 	{
+
+		private static final long serialVersionUID = 1L;
 		private final JLabel serverInfo;
 		private final JLabel currentBoard;
 		private final DefaultListModel listModel;
@@ -170,9 +170,11 @@ public class ClientGUI extends JFrame{
 	    	listModel = new DefaultListModel();
 	    	boardList = new JList(listModel);
 	    	w.print("listBoards");
-            for (String line = r.readLine(); line != null; line = r.readLine()) {
+            /*
+	    	for (String line = r.readLine(); line != null; line = r.readLine()) {
                 listModel.addElement(line);
             }
+            */
 	        userList = new JTable(new DefaultTableModel());
 			final DefaultTableModel users = (DefaultTableModel) userList.getModel();
 			users.addColumn("");

@@ -128,7 +128,9 @@ public class DrawingLayer {
 		}
 		else {
 			out += ERASE_ALL_MESSAGE;
+			return out;
 		}
+		
 		
 		// add the brush info
 		out += " -c [" + color.getRGB() + "]";
