@@ -18,6 +18,7 @@ import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.LayoutStyle.ComponentPlacement;
@@ -29,54 +30,67 @@ public class ClientInfoPanel extends JPanel{
 		private final JLabel serverInfo;
 		private final JLabel currentBoard;
 		private final DefaultListModel listModel;
+		private final DefaultListModel userListModel;
 		private final JList boardList;
-		private final JTable userList;
+		private final JList userList;
 		private final JTextField newBoard;
 		private final JButton enterBoard;
+		private final ClientGUI clientGUI;
 
-	    public ClientInfoPanel() {
+	    public ClientInfoPanel(final ClientGUI clientGUI) {
+	    	this.clientGUI = clientGUI;
 	    	serverInfo = new JLabel("Choose a whiteboard to draw on or add a new whiteboard.");
 	    	enterBoard = new JButton("OK");
 	    	currentBoard = new JLabel("");
 	    	newBoard = new JTextField();
 	    	listModel = new DefaultListModel();
+	    	userListModel = new DefaultListModel();
 	    	boardList = new JList(listModel);
-	        userList = new JTable(new DefaultTableModel());
-	        
-			final DefaultTableModel users = (DefaultTableModel) userList.getModel();
-			users.addColumn("");
-
+	        userList = new JList(userListModel);
 	        GroupLayout groupLayout = new GroupLayout(this);
 	        this.setLayout(groupLayout);
 	        groupLayout.setHorizontalGroup(
 	                groupLayout.createParallelGroup()
-	                    .addGroup(groupLayout.createSequentialGroup()
-	                        .addComponent(serverInfo))
-	                    .addGroup(groupLayout.createSequentialGroup()
-	                        .addComponent(boardList)
-	                        .addComponent(userList))
-	                    .addGroup(groupLayout.createSequentialGroup()
-	                        .addComponent(enterBoard))
+	                    .addComponent(serverInfo)
+	                    .addComponent(boardList)
+	                    .addComponent(userList)
+	                    .addComponent(newBoard)
+	                    .addComponent(enterBoard)
 	            );
 	            groupLayout.setVerticalGroup(
 	                groupLayout.createSequentialGroup()
-	                    .addGroup(groupLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-	                        .addComponent(serverInfo))
-	                    .addGroup(groupLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-	                        .addComponent(boardList)
-	                        .addComponent(userList))
-	                    .addGroup(groupLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-	                        .addComponent(enterBoard))
+	                    .addComponent(serverInfo)
+	                    .addComponent(boardList)
+	                    .addComponent(userList)
+	                    .addComponent(newBoard)
+	                    .addComponent(enterBoard)
 	            );
 	        
 	        setVisible(true);
 	        
+	        
 			enterBoard.addActionListener(new ActionListener(){
 	        	public void actionPerformed(ActionEvent e) {
-
+	        		String output = null;
+	        		if(boardList.isSelectionEmpty()){
+	        			output = "changeBoard " + newBoard.getText();
+	        			listModel.addElement(newBoard.getText());
+	        			System.out.println(userList.isSelectionEmpty());
+	        		}
+	        		else{
+	        			output = "changeBoard " + userList.getSelectedValue();
+	        			boardList.clearSelection();
+	        		}
+	        		newBoard.setText("");
+	        		clientGUI.sendMessage(output);
 	        	}
 	        });
 
 	    }
+	    
+        public void getMessage(String output){
+        	listModel.addElement(output);
+        }
+
 
 }
