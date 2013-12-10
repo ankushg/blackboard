@@ -123,8 +123,7 @@ public class ClientCanvasPanel extends JPanel{
 	    	DrawingLayer currentDrawing = createNewDrawing(true);
 	    	fillWithWhite((Graphics2D) currentDrawing.getImage().getGraphics());
 	    	
-	    	//SEND MESSAGE HERE TOO
-	    	System.out.println(currentDrawing.createMessage());
+	    	sendDrawingMessage(currentDrawing.createMessage());
 	    };
 	    
 	    /*
@@ -278,12 +277,23 @@ public class ClientCanvasPanel extends JPanel{
 	    }
 	    
 	    /**
+	     * Sends a new drawing message to the WhiteboardServer
+	     * 
+	     * @see MessageProtocol# for message formatting info
+	     * 
+	     * @param message
+	     */
+	    public synchronized void sendDrawingMessage(String message){
+	    	canvas.sendDrawingMessage(message);
+	    }
+	    
+	    /**
 	     * Reads a new drawing message from the WhiteboardServer, draws it to the
 	     * drawingBuffer, and removes it from recentDrawings if it exists
 	     * 
 	     * @see MessageProtocol# for message formatting info
 	     * 
-	     * @param drawingMessage
+	     * @param message
 	     */
 	    public synchronized void receiveDrawingMessage(String message){
 	    	DrawingLayer drawing = MessageProtocol.readMessage(message);
@@ -305,14 +315,14 @@ public class ClientCanvasPanel extends JPanel{
 	    	
 	    	if (drawing.getDrawingType().equals(ClientCanvas.PENCIL_BUTTON) || drawing.getDrawingType().equals(ClientCanvas.LINE_BUTTON)){
 				for (int i=0; i<pointList.size()-1; i++){
-					drawPencilSegment(pointList.get(0).x, pointList.get(0).y
-							,pointList.get(1).x, pointList.get(1).y, g, true);
+					drawPencilSegment(pointList.get(i).x, pointList.get(i).y
+							,pointList.get(i+1).x, pointList.get(i+1).y, g, true);
 				}
 			}
 			else if (drawing.getDrawingType().equals(ClientCanvas.ERASE_BUTTON)){
 				for (int i=0; i<pointList.size()-1; i++){
-					drawEraseSegment(pointList.get(0).x, pointList.get(0).y
-							,pointList.get(1).x, pointList.get(1).y, g, true);
+					drawEraseSegment(pointList.get(i).x, pointList.get(i).y
+							,pointList.get(i+1).x, pointList.get(i+1).y, g, true);
 				}
 			}
 			else if (drawing.getDrawingType().equals(ClientCanvas.SHAPE_BUTTON)){
@@ -339,6 +349,9 @@ public class ClientCanvasPanel extends JPanel{
 	    	if (drawingIndex != -1){
 	    		recentDrawings.remove(drawingIndex);
 	    	}
+	    	
+	    	// for debugging
+	    	System.out.println("Removed drawing "+drawingID);
 	    }
 
 	    
@@ -487,9 +500,7 @@ public class ClientCanvasPanel extends JPanel{
 	            }
 	            currentDrawing.addPoint(x, y);
 	            
-	            // THIS IS WHERE WE WILL SEND THE MESSAGE
-	            System.out.println(currentDrawing.createMessage());
-	            //
+	            sendDrawingMessage(currentDrawing.createMessage());
 	            
 	            X1=X2=Y1=Y2=Integer.MAX_VALUE;// set these to be arbitrarily off of the drawing screen once weve finalized the drawing
 	        }

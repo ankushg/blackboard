@@ -40,7 +40,7 @@ public class ClientGUI extends JFrame{
 	
 
 	public ClientGUI() throws IOException{
-		canvas = new ClientCanvas(ClientCanvasPanel.DEFAULT_WIDTH,ClientCanvasPanel.DEFAULT_HEIGHT);
+		canvas = new ClientCanvas(ClientCanvasPanel.DEFAULT_WIDTH,ClientCanvasPanel.DEFAULT_HEIGHT, this);
 		infoPanel = new ClientInfoPanel(this);
 		
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -64,8 +64,34 @@ public class ClientGUI extends JFrame{
         			.addComponent(infoPanel)
         );
         this.pack();
+        this.setVisible(true);
         
         showLoginScreen();
+        
+        
+        Thread clientThread = new Thread(new Runnable() {
+
+			@Override
+			public void run() {
+				try {
+                    for (String line = r.readLine(); line != null; line = r.readLine()) {
+                        for (String drawingMessage: MessageProtocol.DRAWING_MESSAGE_LIST){
+                        	if (line.startsWith(drawingMessage)){
+                        		canvas.receiveDrawingMessage(line);
+                        	}
+                        }
+                    }
+                } catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} finally {
+
+                }
+				
+			}
+        	
+        });
+        clientThread.start();
 	}
 	
 
@@ -107,14 +133,14 @@ public class ClientGUI extends JFrame{
         
         
     public synchronized void getBoardList() throws IOException{
-        w.print("listBoards");
+        w.println("listBoards");
 //       	while((r.readLine()) != null){
         	infoPanel.getMessage(r.readLine());
 //        }	
 	}
 
 	public synchronized void sendMessage(String output){
-		w.print(output);
+		w.println(output);
 	}
     
     public static void main(final String[] args) {

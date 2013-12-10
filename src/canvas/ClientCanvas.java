@@ -64,6 +64,7 @@ public class ClientCanvas extends JPanel{
     private final JLabel currentColorLabel;
     private final JButton eraseAllButton;
     
+    private final ClientGUI clientGUI;
     
     public final static String SQUARE = "Square";
     public final static String RECTANGLE = "Rectangle";
@@ -89,7 +90,7 @@ public class ClientCanvas extends JPanel{
      * @param width width in pixels
      * @param height height in pixels
      */
-    public ClientCanvas(int width, int height) {
+    public ClientCanvas(int width, int height, ClientGUI clientGUI) {
         
         whiteboardPanel = new ClientCanvasPanel(width,height,this);
         
@@ -108,6 +109,8 @@ public class ClientCanvas extends JPanel{
         currentColorLabel.setOpaque(true);
         
         eraseAllButton = new JButton("Erase All");
+        
+        this.clientGUI = clientGUI;
         
         pencilModeButton.setName(PENCIL_BUTTON);
         eraseModeButton.setName(ERASE_BUTTON);
@@ -305,6 +308,28 @@ public class ClientCanvas extends JPanel{
      */
     public String getUserID(){
     	return userID;
+    }
+    
+    /**
+     * Sends a new drawing message to the WhiteboardServer
+     * 
+     * @see MessageProtocol# for message formatting info
+     * 
+     * @param message
+     */
+    public synchronized void sendDrawingMessage(String message){
+    	clientGUI.sendMessage(message);
+    }
+    
+    /**
+     * Receives a new drawing message to the WhiteboardServer
+     * 
+     * @see MessageProtocol# for message formatting info
+     * 
+     * @param message
+     */
+    public synchronized void receiveDrawingMessage(String message){
+    	whiteboardPanel.receiveDrawingMessage(message);
     }
 
 
