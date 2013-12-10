@@ -80,6 +80,9 @@ public class ClientGUI extends JFrame{
                         		canvas.receiveDrawingMessage(line);
                         	}
                         }
+                        if (line.startsWith("joinedBoard")){
+                    		canvas.receiveDrawingMessage(line);
+                    	}
                     }
                 } catch (IOException e) {
 					// TODO Auto-generated catch block

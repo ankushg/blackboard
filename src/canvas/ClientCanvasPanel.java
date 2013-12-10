@@ -296,9 +296,15 @@ public class ClientCanvasPanel extends JPanel{
 	     * @param message
 	     */
 	    public synchronized void receiveDrawingMessage(String message){
-	    	DrawingLayer drawing = MessageProtocol.readMessage(message);
-	    	drawToBuffer(drawing);
-	    	removeDrawingLayer(drawing.getDrawingID());
+	    	if (message.startsWith("joinedBoard")){
+	    		recentDrawings.clear();
+	    		fillWithWhite((Graphics2D) drawingBuffer.getGraphics());
+	    	}
+	    	else {
+		    	DrawingLayer drawing = MessageProtocol.readMessage(message);
+		    	drawToBuffer(drawing);
+		    	removeDrawingLayer(drawing.getDrawingID());
+	    	}
 	    }
 	    
 	    /**

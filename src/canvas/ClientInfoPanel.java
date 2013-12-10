@@ -78,7 +78,7 @@ public class ClientInfoPanel extends JPanel{
 	        			System.out.println(userList.isSelectionEmpty());
 	        		}
 	        		else{
-	        			output = "changeBoard " + userList.getSelectedValue();
+	        			output = "changeBoard " + boardList.getSelectedValue();
 	        			boardList.clearSelection();
 	        		}
 	        		newBoard.setText("");
