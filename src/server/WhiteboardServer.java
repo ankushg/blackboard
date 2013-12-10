@@ -211,7 +211,10 @@ public class WhiteboardServer {
      *         operation (i.e., needs to be echoed to every other thread)
      */
     private static boolean isClientOperation(String input) {
-        String regex = "(changeBoard [a-zA-Z0-9_]+)" + "|(setUsername [a-zA-Z0-9_]+)" + "|(listBoards)";
+        String regex = "(changeBoard [a-zA-Z0-9_]+)"
+                    + "|(setUsername [a-zA-Z0-9_]+)"
+                    + "|(listBoards)"
+                    + "|(getUsername)";
         return input.matches(regex);
     }
 
@@ -244,7 +247,9 @@ public class WhiteboardServer {
         case "setUsername":
             String newName = args[1];
             setUsername(client, newName);
-
+            break;
+        case "getUsername":
+            thread.sendMessage("username " + client.getUsername());
             break;
         }
     }
@@ -267,13 +272,13 @@ public class WhiteboardServer {
             WhiteboardThread thread = getThread(client);
             assert thread != null;
 
-            if (isUniqueUsername(newName)) {
+            if (isUniqueUsername(newName) && !newName.matches("User[0-9]+")) {
                 thread.sendMessage(String.format("usernameChanged %s %s", client.getUsername(), newName));
                 announceMessage("userQuit " + client.getUsername(), client.getCurrentBoardId());
                 client.setUsername(newName);
                 announceMessage("userJoined " + client.getUsername(), client.getCurrentBoardId());
             } else {
-                // non-unique username
+                // non-unique username or username in format "User[0-9]+"
                 thread.sendMessage(String.format("usernameChanged %s %s", client.getUsername(), client.getUsername()));
             }
         }
