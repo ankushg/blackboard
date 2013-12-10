@@ -329,7 +329,13 @@ public class ClientCanvas extends JPanel{
      * @param message
      */
     public synchronized void receiveDrawingMessage(String message){
-    	whiteboardPanel.receiveDrawingMessage(message);
+    	final String drawingMessage = message;
+    	SwingUtilities.invokeLater(new Runnable() {
+    		@Override
+			public void run() {
+    			whiteboardPanel.receiveDrawingMessage(drawingMessage);
+    		}
+    	});
     }
 
 
