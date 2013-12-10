@@ -23,10 +23,11 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.LayoutStyle.ComponentPlacement;
+import javax.swing.SwingWorker;
 import javax.swing.table.DefaultTableModel;
 
 public class ClientGUI extends JFrame{
-	
+
 	private PrintWriter w;
 	private BufferedReader r;
 	private Socket socket;
@@ -65,6 +66,7 @@ public class ClientGUI extends JFrame{
         showLoginScreen();
 	}
 	
+
 	/**
 	 * Prompts the user with a dialog for server info, then initializes a socket connection
 	 * with the server
