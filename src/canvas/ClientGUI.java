@@ -19,14 +19,15 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.LayoutStyle.ComponentPlacement;
+import javax.swing.SwingWorker;
 import javax.swing.table.DefaultTableModel;
 
 public class ClientGUI extends JFrame{
 
-	private String userID;
+	private String userID = "kevin";
 	private String portNo = "4500";
-	private String ipNo = "127.0.0.1";
-	private int portNumber;
+	private int portNumber = 4500;
+	private String ipNo = "localhost";
 	private final JButton usernameButton;
 	private final JTextField newUsername;
 	private final JLabel username;
@@ -155,12 +156,12 @@ public class ClientGUI extends JFrame{
 	{
 		private final JLabel serverInfo;
 		private final JLabel currentBoard;
-		private final DefaultListModel listModel;
+		private final DefaultListModel listModel, userListModel;
 		private final JList boardList;
-		private final JTable userList;
+		private final JList userList;
 		private final JTextField newBoard;
 		private final JButton enterBoard;
-
+		
 	    public MainFrame() throws IOException
 	    {
 	    	serverInfo = new JLabel("Choose a whiteboard to draw on or add a new whiteboard.");
@@ -168,14 +169,9 @@ public class ClientGUI extends JFrame{
 	    	currentBoard = new JLabel("");
 	    	newBoard = new JTextField();
 	    	listModel = new DefaultListModel();
+	    	userListModel = new DefaultListModel();
 	    	boardList = new JList(listModel);
-	    	w.print("listBoards");
-            for (String line = r.readLine(); line != null; line = r.readLine()) {
-                listModel.addElement(line);
-            }
-	        userList = new JTable(new DefaultTableModel());
-			final DefaultTableModel users = (DefaultTableModel) userList.getModel();
-			users.addColumn("");
+	        userList = new JList(userListModel);
 	        Container initialPanel = this.getContentPane();
 	        GroupLayout groupLayout = new GroupLayout(initialPanel);
 	        groupLayout.setHorizontalGroup(
@@ -184,24 +180,37 @@ public class ClientGUI extends JFrame{
 	                        .addComponent(serverInfo))
 	                    .addGroup(groupLayout.createSequentialGroup()
 	                        .addComponent(boardList)
-	                        .addComponent(userList))
-	                    .addGroup(groupLayout.createSequentialGroup()
+	                        .addComponent(userList)
+	                    	.addComponent(newBoard)
 	                        .addComponent(enterBoard))
 	            );
 	            groupLayout.setVerticalGroup(
 	                groupLayout.createSequentialGroup()
-	                    .addGroup(groupLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+	                	    .addGroup(groupLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
 	                        .addComponent(serverInfo))
-	                    .addGroup(groupLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
 	                        .addComponent(boardList)
-	                        .addComponent(userList))
-	                    .addGroup(groupLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+	                        .addComponent(userList)
+	                        .addGroup(groupLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+		                    .addComponent(newBoard)
 	                        .addComponent(enterBoard))
 	            );
 	        this.pack();
-	        
 	        setVisible(true);
-	        
+	    	SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>(){
+	    		@Override
+	    		protected Void doInBackground(){
+	    	    	w.print("listBoards");
+	    	    	try {
+						for (String line = r.readLine(); line != null; line = r.readLine()) {
+							listModel.addElement(line);
+						}
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+					return null;
+	    		}
+	    	};
+    		worker.execute();
 			enterBoard.addActionListener(new ActionListener(){
 	        	public void actionPerformed(ActionEvent e) {
 	        		if(boardList.isSelectionEmpty()){
