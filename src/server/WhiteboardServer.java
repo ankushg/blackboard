@@ -236,7 +236,12 @@ public class WhiteboardServer {
         String command = args[0];
         switch (command) {
         case "listBoards":
-            thread.sendMessages(new ArrayList<String>(boards.keySet()));
+            StringBuilder sb = new StringBuilder();
+            sb.append("currentBoards");
+            for (String s : boards.keySet()) {
+                sb.append(" " + s);
+            }
+            thread.sendMessage(sb.toString());
             break;
         case "changeBoard":
             String oldBoard = client.getCurrentBoardId();
