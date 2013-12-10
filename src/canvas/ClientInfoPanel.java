@@ -4,6 +4,8 @@ import server.WhiteboardServer;
 import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -95,19 +97,38 @@ public class ClientInfoPanel extends JPanel{
 			newBoard.addActionListener(new ActionListener(){
 	        	public void actionPerformed(ActionEvent e) {
 	        		String output = null;
-	        		if(boardList.isSelectionEmpty() && newBoard.getText() != ""){
-	        			output = "changeBoard " + newBoard.getText();
-	        			listModel.addElement(newBoard.getText());
+	        		String input = newBoard.getText();
+	        		if(input != ""){
+	        			output = "changeBoard " + input;
+	        			if(isUnique(input)){
+	        				listModel.addElement(input);
+	        			}
 	        		}
-	        		else{
-	        			output = "changeBoard " + boardList.getSelectedValue();
-	        			boardList.clearSelection();
-	        		}
+//	        		else{
+//	        			output = "changeBoard " + boardList.getSelectedValue();
+//	        			boardList.clearSelection();
+//	        		}
 	        		userListModel.clear();
 	        		newBoard.setText("");
 	        		clientGUI.sendMessage(output);
 	        	}
 	        });
+
+			boardList.addMouseListener(new MouseAdapter() {
+			    public void mouseClicked(MouseEvent evt) {
+			    	String output = "";
+			        JList list = (JList)evt.getSource();
+			        if (evt.getClickCount() == 2) {
+			            int index = list.locationToIndex(evt.getPoint());
+				        output = (String) listModel.getElementAt(index);
+			        } else if (evt.getClickCount() == 3) {   // Triple-click
+			            int index = list.locationToIndex(evt.getPoint());
+				        output = (String) listModel.getElementAt(index);
+			        }
+	        		userListModel.clear();
+	        		clientGUI.sendMessage("changeBoard " + output);
+			    }
+			});
 
 			changeName.addActionListener(new ActionListener(){
 				public void actionPerformed(ActionEvent e) {
@@ -155,6 +176,15 @@ public class ClientInfoPanel extends JPanel{
 	    		for(int i=1; i<boards.length; i++)
 	    			listModel.addElement(boards[i]);
 	    	}
+	    }
+	    
+	    public boolean isUnique(String input){
+	    	for(int i=0; i<listModel.getSize(); i++){
+	    		if(input.equals(listModel.getElementAt(i))){
+	    			return false;
+	    		}
+	    	}
+	    	return true;
 	    }
 
 }
