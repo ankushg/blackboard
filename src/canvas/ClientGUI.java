@@ -8,12 +8,16 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+
+import javax.swing.Box;
 import javax.swing.DefaultListModel;
 import javax.swing.GroupLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
@@ -22,205 +26,79 @@ import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.table.DefaultTableModel;
 
 public class ClientGUI extends JFrame{
-
-	private String userID;
-	private String portNo = "4500";
-	private String ipNo = "127.0.0.1";
-	private int portNumber;
-	private final JButton usernameButton;
-	private final JTextField newUsername;
-	private final JLabel username;
-	private final JLabel port;
-	private final JTextField newPort;
-	private final JButton portButton;
-	private final JLabel ip;
-	private final JTextField newIp;
-	private final JButton ipButton;
-	private final JButton connectServer;
+	
 	private PrintWriter w;
 	private BufferedReader r;
 	private Socket socket;
 	
 	
+	private final ClientCanvas canvas;
+	private final ClientInfoPanel infoPanel;
+	
+	
 	public ClientGUI(){
-		username = new JLabel("Please enter your username");
-		usernameButton = new JButton("Set username");
-		newUsername = new JTextField(10);
-		port = new JLabel("Please enter your port number");
-		newPort = new JTextField(10);
-		portButton = new JButton("Set port number");
-		ip = new JLabel("Please enter your IP address");
-		newIp = new JTextField(10);
-		ipButton = new JButton("Set IP address");
-		connectServer = new JButton("Connect to server");
+		canvas = new ClientCanvas(800,600);
+		infoPanel = new ClientInfoPanel();
 		
-        Container initialPanel = this.getContentPane();
-        GroupLayout layout = new GroupLayout(initialPanel);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(GroupLayout.Alignment.CENTER)
-            	.addGroup(layout.createSequentialGroup()
-            			.addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-								.addComponent(username)
-								.addComponent(port)
-								.addComponent(ip)
-    					)
-    					.addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-	    					.addComponent(newUsername)
-	    					.addComponent(newPort)
-	    					.addComponent(newIp)	
-    					)
-    					.addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-	    					.addComponent(usernameButton)
-	    					.addComponent(ipButton)
-	    					.addComponent(portButton)
-	    				)
-    			)
-    			.addComponent(connectServer)
-    	);
-                
-        layout.setVerticalGroup(
-        	layout.createSequentialGroup()
-    			.addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-    					.addComponent(username)
-    					.addComponent(newUsername)
-    					.addComponent(usernameButton)
-    					)
-    			.addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-    					.addComponent(port)
-    					.addComponent(newPort)
-    					.addComponent(portButton)
-    					)
-    			.addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-    					.addComponent(ip)
-    					.addComponent(newIp)
-    					.addComponent(ipButton)
-    					)
-    			.addComponent(connectServer)
-        );
-        initialPanel.setLayout(layout);
+		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		this.setResizable(false);
+		
+		//set up layout
+		Container mainPanel = this.getContentPane();
+        GroupLayout layout = new GroupLayout(mainPanel);
+        mainPanel.setLayout(layout);
         layout.setAutoCreateGaps(true);
         layout.setAutoCreateContainerGaps(true);
+        
+        layout.setHorizontalGroup(
+        		layout.createSequentialGroup()
+        			.addComponent(canvas)
+        			.addComponent(infoPanel)
+        );
+        layout.setVerticalGroup(
+        		layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+        			.addComponent(canvas)
+        			.addComponent(infoPanel)
+        );
         this.pack();
-		usernameButton.addActionListener(new ActionListener(){
-        	public void actionPerformed(ActionEvent e) {
-        		userID = newUsername.getText();
-        		newUsername.setText("");
-        	}
-        });
-		portButton.addActionListener(new ActionListener(){
-        	public void actionPerformed(ActionEvent e) {
-        		portNo = newPort.getText();
-        		portNumber = Integer.parseInt(portNo);
-        		newPort.setText("");
-        	}
-        });
-		ipButton.addActionListener(new ActionListener(){
-        	public void actionPerformed(ActionEvent e) {
-        		ipNo = newIp.getText();
-        		newIp.setText("");
-        	}
-        });
-		connectServer.addActionListener(new ActionListener(){
-        	public void actionPerformed(ActionEvent e) {
-        		try {
-					socket = new Socket(ipNo, portNumber);
-					w = new PrintWriter(socket.getOutputStream(),true);
-					r = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
-        		w.println("setUsername " + userID);
-        		
-        		SwingUtilities.invokeLater(new Runnable() {
-                    public void run() {
-		        		MainFrame main;
-						try {
-							
-							main = new MainFrame();
-							System.out.println("HEre");
-			        		main.setVisible(true);
-						} catch (IOException e1) {
-							e1.printStackTrace();
-						}
-                    }
-        		});
-        	}
-        });
-
+        
+        showLoginScreen();
 	}
 	
-	public class MainFrame extends JFrame
-	{
+	/**
+	 * Prompts the user with a dialog for server info, then initializes a socket connection
+	 * with the server
+	 */
+	private void showLoginScreen() {
+		//create the text fields
+        JTextField IPAddress= new JTextField(5);
+        IPAddress.setText("127.0.0.1");
+        JTextField portNum = new JTextField(5);
+        portNum.setText("4500");
 
-		private static final long serialVersionUID = 1L;
-		private final JLabel serverInfo;
-		private final JLabel currentBoard;
-		private final DefaultListModel listModel;
-		private final JList boardList;
-		private final JTable userList;
-		private final JTextField newBoard;
-		private final JButton enterBoard;
+        JPanel myPanel = new JPanel();
+        myPanel.add(new JLabel("Server IP Address:"));
+        myPanel.add(IPAddress);
+        myPanel.add(Box.createHorizontalStrut(15)); // a spacer
+        myPanel.add(new JLabel("Server Port #:"));
+        myPanel.add(portNum);
 
-	    public MainFrame() throws IOException
-	    {
-	    	serverInfo = new JLabel("Choose a whiteboard to draw on or add a new whiteboard.");
-	    	enterBoard = new JButton("OK");
-	    	currentBoard = new JLabel("");
-	    	newBoard = new JTextField();
-	    	listModel = new DefaultListModel();
-	    	boardList = new JList(listModel);
-	    	w.print("listBoards");
-            /*
-	    	for (String line = r.readLine(); line != null; line = r.readLine()) {
-                listModel.addElement(line);
-            }
-            */
-	        userList = new JTable(new DefaultTableModel());
-			final DefaultTableModel users = (DefaultTableModel) userList.getModel();
-			users.addColumn("");
-	        Container initialPanel = this.getContentPane();
-	        GroupLayout groupLayout = new GroupLayout(initialPanel);
-	        groupLayout.setHorizontalGroup(
-	                groupLayout.createParallelGroup()
-	                    .addGroup(groupLayout.createSequentialGroup()
-	                        .addComponent(serverInfo))
-	                    .addGroup(groupLayout.createSequentialGroup()
-	                        .addComponent(boardList)
-	                        .addComponent(userList))
-	                    .addGroup(groupLayout.createSequentialGroup()
-	                        .addComponent(enterBoard))
-	            );
-	            groupLayout.setVerticalGroup(
-	                groupLayout.createSequentialGroup()
-	                    .addGroup(groupLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-	                        .addComponent(serverInfo))
-	                    .addGroup(groupLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-	                        .addComponent(boardList)
-	                        .addComponent(userList))
-	                    .addGroup(groupLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-	                        .addComponent(enterBoard))
-	            );
-	        this.pack();
-	        
-	        setVisible(true);
-	        
-			enterBoard.addActionListener(new ActionListener(){
-	        	public void actionPerformed(ActionEvent e) {
-	        		if(boardList.isSelectionEmpty()){
-	        			String boardName = newBoard.getText();
-	        			w.print("changeBoard " + boardName);
-	        			listModel.addElement(boardName);
-	        		}
-	        		else{
-	        			String board = (String)boardList.getSelectedValue();
-	        			w.print("changeBoard " + board);
-	        		}
-	        	}
-	        });
-
-	    }
+        int result = JOptionPane.showConfirmDialog(null, myPanel, 
+                 "Please enter the server information:", JOptionPane.OK_CANCEL_OPTION);
+        if (result == JOptionPane.OK_OPTION) {
+        	try {
+				socket = new Socket(IPAddress.getText(), Integer.parseInt(portNum.getText()));
+				w = new PrintWriter(socket.getOutputStream(),true);
+				r = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+        }
+        if (result == JOptionPane.CANCEL_OPTION) {
+        	this.dispose();
+        }
 	}
-
+	
     public static void main(final String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {

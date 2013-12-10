@@ -21,6 +21,7 @@ import javax.swing.JPanel;
  * to allow collaboration on a whiteboard among multiple users
  * 
  * TODO: Write tests for message creation
+ * TODO: Write tests for message receiving
  * 
  * @author jlmart88
  *
@@ -242,19 +243,12 @@ public class ClientCanvasPanel extends JPanel{
 	        this.repaint();
 	    }
 	    
-	    /*
-	     * Add the mouse listener that supports the user's drawing.
-	     */
-	    private void addDrawingController() {
-	        DrawingController controller = new DrawingController();
-	        addMouseListener(controller);
-	        addMouseMotionListener(controller);
-	    }
-	    
 	    /**
 	     * Adds a new DrawingLayer to the list of currentDrawings, and
 	     * returns it
 	     * 
+	     * @param eraseAll an optional boolean that signifies 
+	     * 		that this Drawing erased the whole canvas
 	     * @return DrawingLayer the drawing just added
 	     */
 	    private synchronized DrawingLayer createNewDrawing() {
@@ -330,9 +324,19 @@ public class ClientCanvasPanel extends JPanel{
 	    	
 	    	return new Line2D.Float(new Point(xOrigin, yOrigin), new Point(xOrigin+xLength, yOrigin+yLength));
 	    }
+
 	    
 	    /*
-	     * DrawingController handles the user's freehand drawing.
+	     * Add the mouse listener that supports the user's drawing.
+	     */
+	    private void addDrawingController() {
+	        DrawingController controller = new DrawingController();
+	        addMouseListener(controller);
+	        addMouseMotionListener(controller);
+	    }
+	    
+	    /*
+	     * DrawingController handles the user's drawing and mouse events.
 	     */
 	    private class DrawingController implements MouseListener, MouseMotionListener {
 	        // store the coordinates of the last mouse event, so we can

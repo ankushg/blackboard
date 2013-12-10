@@ -32,14 +32,11 @@ import javax.swing.JToggleButton;
 import javax.swing.SwingUtilities;
 
 /**
- * ClientCanvas represents the GUI surrounding a ClientCanvasPanel, which 
+ * ClientCanvas represents the sub-GUI surrounding a ClientCanvasPanel, which 
  * allows drawing surface that allows the user to draw
  * on it using tools such as freehand, shapes, etc. and allows the
  * user to erase as well. The canvas communicates with a ServerCanvas
  * to allow collaboration on a whiteboard among multiple users
- * 
- * Differences from Canvas:
- * This is a JFrame, managing the GUI surrounding the whiteboard. The ClientCanvasPanel is a JPanel.
  * 
  * 
  * TODO: Change interface to use icons instead of text
@@ -49,7 +46,7 @@ import javax.swing.SwingUtilities;
  * 
  * 
  */
-public class ClientCanvas extends JFrame{
+public class ClientCanvas extends JPanel{
     
     private final ClientCanvasPanel whiteboardPanel;
     
@@ -94,10 +91,6 @@ public class ClientCanvas extends JFrame{
      * @param height height in pixels
      */
     public ClientCanvas(int width, int height) {
-    	
-    	// fix the size of the canvas and terminate the instance when closed
-    	this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    	this.setResizable(false);
         
         whiteboardPanel = new ClientCanvasPanel(width,height,this);
         
@@ -128,9 +121,8 @@ public class ClientCanvas extends JFrame{
         eraseAllButton.setName(ERASE_ALL_BUTTON);
         
         // set up the toolbar
-        Container mainPanel = this.getContentPane();
-        GroupLayout layout = new GroupLayout(mainPanel);
-        mainPanel.setLayout(layout);
+        GroupLayout layout = new GroupLayout(this);
+        this.setLayout(layout);
         layout.setAutoCreateGaps(true);
         layout.setAutoCreateContainerGaps(true);
         
@@ -164,7 +156,7 @@ public class ClientCanvas extends JFrame{
         					)
         			.addComponent(whiteboardPanel)
         );
-        this.pack();
+
         //finish toolbar setup
         
         // this ActionListener is used to handle the switching between tools
@@ -315,18 +307,6 @@ public class ClientCanvas extends JFrame{
     public String getUserID(){
     	return userID;
     }
-    
-    /*
-     * Main program. Make a window containing a ClientCanvas.
-     */
-    public static void main(String[] args) {
-        // set up the UI (on the event-handling thread)
-        SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                ClientCanvas canvas = new ClientCanvas(800, 600);
-                canvas.setVisible(true);
-            }
-        });
-    }
+
 
 }
