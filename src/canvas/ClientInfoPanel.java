@@ -1,5 +1,6 @@
 package canvas;
 
+import server.WhiteboardServer;
 import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -36,13 +37,19 @@ public class ClientInfoPanel extends JPanel{
 		private final JTextField newBoard;
 		private final JButton enterBoard;
 		private final ClientGUI clientGUI;
-
-	    public ClientInfoPanel(final ClientGUI clientGUI) {
+		private final JTextField changeName;
+		private final JLabel userID;
+		private String username;
+		
+	    public ClientInfoPanel(final ClientGUI clientGUI) throws IOException {
 	    	this.clientGUI = clientGUI;
+	    	username = "hi";
+	    	userID = new JLabel("Your username is: " + username + " change username:");
+	    	changeName = new JTextField(10);
 	    	serverInfo = new JLabel("Choose a whiteboard to draw on or add a new whiteboard.");
 	    	enterBoard = new JButton("OK");
 	    	currentBoard = new JLabel("");
-	    	newBoard = new JTextField();
+	    	newBoard = new JTextField(10);
 	    	listModel = new DefaultListModel();
 	    	userListModel = new DefaultListModel();
 	    	boardList = new JList(listModel);
@@ -55,6 +62,9 @@ public class ClientInfoPanel extends JPanel{
 	                    .addComponent(boardList)
 	                    .addComponent(userList)
 	                    .addComponent(newBoard)
+	                    .addGroup(groupLayout.createSequentialGroup()
+	                    		.addComponent(userID)
+	                    		.addComponent(changeName))
 	                    .addComponent(enterBoard)
 	            );
 	            groupLayout.setVerticalGroup(
@@ -63,6 +73,9 @@ public class ClientInfoPanel extends JPanel{
 	                    .addComponent(boardList)
 	                    .addComponent(userList)
 	                    .addComponent(newBoard)
+	                    .addGroup(groupLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+	                    		.addComponent(userID)
+	                    		.addComponent(changeName))
 	                    .addComponent(enterBoard)
 	            );
 	        
@@ -86,11 +99,22 @@ public class ClientInfoPanel extends JPanel{
 	        	}
 	        });
 
+			changeName.addActionListener(new ActionListener(){
+				public void actionPerformed(ActionEvent e) {
+					clientGUI.sendMessage("setUsername " + changeName.getText());
+					userID.setText("Your username is: " + changeName.getText() + " change username: ");
+					changeName.setText("");
+				}
+			});
+			
+			
+			userListModel.addElement()
 	    }
 	    
         public void getMessage(String output){
         	listModel.addElement(output);
         }
+        
 
 
 }

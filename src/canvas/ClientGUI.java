@@ -107,16 +107,25 @@ public class ClientGUI extends JFrame{
         
         
     public synchronized void getBoardList() throws IOException{
-        w.print("listBoards");
-//       	while((r.readLine()) != null){
-        	infoPanel.getMessage(r.readLine());
-//        }	
-	}
-
-	public synchronized void sendMessage(String output){
-		w.print(output);
+        w.println("listBoards");
+       	while((r.readLine()) != null){
+        	infoPanel.addToBoardList(r.readLine());
+        }	
 	}
     
+    public synchronized void getUsers(String board){
+    	w.println()
+    }
+
+	public synchronized void sendMessage(String output){
+		w.println(output);
+	}
+    
+	public synchronized String sendAndGetMessage(String output) throws IOException{
+		w.println(output);
+		return r.readLine();
+	}
+	
     public static void main(final String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
