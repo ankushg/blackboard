@@ -3,8 +3,9 @@ package model;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * An object representing a single Client. Rep invariant is that each client
- * generated is unique due to the id attribute.
+ * An object representing a single Client.
+ * 
+ * Rep invariant: each client created is unique (due to the id attribute).
  * 
  */
 public class Client {

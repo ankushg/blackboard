@@ -1,4 +1,4 @@
-package canvas;
+package server;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -18,6 +18,12 @@ import java.util.Queue;
 
 import model.Client;
 
+/**
+ * WhiteboardServer manages everything.
+ * 
+ * @author ankush
+ * 
+ */
 public class WhiteboardServer {
 
     /**
@@ -237,11 +243,39 @@ public class WhiteboardServer {
             break;
         case "setUsername":
             String newName = args[1];
-            thread.sendMessage(String.format("usernameChanged %s %s", client.getUsername(), newName));
-            announceMessage("userQuit " + client.getUsername(), client.getCurrentBoardId());
-            client.setUsername(newName);
-            announceMessage("userJoined " + client.getUsername(), client.getCurrentBoardId());
+            setUsername(client, newName);
+
             break;
+        }
+    }
+
+    private boolean isUniqueUsername(String name) {
+        synchronized (clientThreads) {
+            for (WhiteboardThread t : clientThreads) {
+                if (t.client.getUsername().equals(name)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private void setUsername(Client client, String newName) {
+        // synchronized on client so that more than one joinBoard command isn't
+        // run at a time for a given client
+        synchronized (client) {
+            WhiteboardThread thread = getThread(client);
+            assert thread != null;
+
+            if (isUniqueUsername(newName)) {
+                thread.sendMessage(String.format("usernameChanged %s %s", client.getUsername(), newName));
+                announceMessage("userQuit " + client.getUsername(), client.getCurrentBoardId());
+                client.setUsername(newName);
+                announceMessage("userJoined " + client.getUsername(), client.getCurrentBoardId());
+            } else {
+                // non-unique username
+                thread.sendMessage(String.format("usernameChanged %s %s", client.getUsername(), client.getUsername()));
+            }
         }
     }
 
@@ -314,12 +348,12 @@ public class WhiteboardServer {
                     try {
                         for (String line = in.readLine(); line != null; line = in.readLine()) {
                             if (line.equals("exit")) {
-                                announceMessage("userQuit " + client.getUsername(), client.getCurrentBoardId());
                                 break;
                             }
                             handleRequest(line);
                         }
                     } finally {
+                        announceMessage("userQuit " + client.getUsername(), client.getCurrentBoardId());
                         out.close();
                         in.close();
                     }
@@ -390,7 +424,6 @@ public class WhiteboardServer {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
         }
 
         /**
@@ -404,13 +437,9 @@ public class WhiteboardServer {
          * @param messages
          *            the messages
          */
-        public synchronized void sendMessages(List<String> messages) {
-            StringBuilder sb = new StringBuilder();
+        public synchronized void sendMessages(final List<String> messages) {
             for (String s : messages) {
-                sb.append(s + "\n");
-            }
-            if (sb.length() > 2) {
-                sendMessage(sb.substring(0, sb.length() - 1));
+                sendMessage(s);
             }
         }
     }
