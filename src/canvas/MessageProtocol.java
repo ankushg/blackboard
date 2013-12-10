@@ -41,6 +41,7 @@ public class MessageProtocol {
 	public static final String OVAL_MESSAGE = "drawOval"; 
 	public static final String RECTANGLE_MESSAGE = "drawRectangle";
 	public static final String ERASE_ALL_MESSAGE = "eraseAll";
+	public static final String[] DRAWING_MESSAGE_LIST = {LINE_MESSAGE, ERASE_MESSAGE, OVAL_MESSAGE, RECTANGLE_MESSAGE, ERASE_ALL_MESSAGE};
 	
 	/**
 	 * Creates a message to be sent to the server for how to draw the input drawing 
@@ -96,7 +97,7 @@ public class MessageProtocol {
 				for (Point point:pointList){
 					out += point.x+" "+point.y+" ";
 				}
-				out.substring(0, out.length()-1);
+				out = out.substring(0, out.length()-1);
 			}
 			out += "]";
 		}
