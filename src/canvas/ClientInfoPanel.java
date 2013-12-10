@@ -45,24 +45,25 @@ public class ClientInfoPanel extends JPanel{
 		private final JList boardList;
 		private final JList userList;
 		private final JTextField newBoard;
-		private final JButton enterBoard;
 		private final ClientGUI clientGUI;
 		private final JTextField changeName;
 		private final JLabel userID;
+		private final JLabel userInfo;
 		private String username;
 		
 	    public ClientInfoPanel(final ClientGUI clientGUI) throws IOException {
 	    	this.clientGUI = clientGUI;
-	    	username = "hi";
+	    	username = "";
 	    	userID = new JLabel("Your username is: " + username + " change username:");
 	    	changeName = new JTextField(10);
 	    	serverInfo = new JLabel("Choose a whiteboard to draw on or add a new whiteboard.");
-	    	enterBoard = new JButton("OK");
+	    	userInfo = new JLabel("Connected users in your current board");
 	    	currentBoard = new JLabel("");
 	    	newBoard = new JTextField(10);
 	    	listModel = new DefaultListModel();
 	    	userListModel = new DefaultListModel();
 	    	boardList = new JList(listModel);
+	    	
 	        userList = new JList(userListModel);
 	        GroupLayout groupLayout = new GroupLayout(this);
 	        this.setLayout(groupLayout);
@@ -70,40 +71,39 @@ public class ClientInfoPanel extends JPanel{
 	                groupLayout.createParallelGroup()
 	                    .addComponent(serverInfo)
 	                    .addComponent(boardList)
+	                    .addComponent(userInfo)
 	                    .addComponent(userList)
 	                    .addComponent(newBoard)
 	                    .addGroup(groupLayout.createSequentialGroup()
 	                    		.addComponent(userID)
 	                    		.addComponent(changeName))
-	                    .addComponent(enterBoard)
 	            );
 	            groupLayout.setVerticalGroup(
 	                groupLayout.createSequentialGroup()
 	                    .addComponent(serverInfo)
 	                    .addComponent(boardList)
+	                    .addComponent(userInfo)
 	                    .addComponent(userList)
 	                    .addComponent(newBoard)
 	                    .addGroup(groupLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
 	                    		.addComponent(userID)
 	                    		.addComponent(changeName))
-	                    .addComponent(enterBoard)
 	            );
 	        
 	        setVisible(true);
 	        
-	        
-			enterBoard.addActionListener(new ActionListener(){
+			newBoard.addActionListener(new ActionListener(){
 	        	public void actionPerformed(ActionEvent e) {
 	        		String output = null;
-	        		if(boardList.isSelectionEmpty()){
+	        		if(boardList.isSelectionEmpty() && newBoard.getText() != ""){
 	        			output = "changeBoard " + newBoard.getText();
 	        			listModel.addElement(newBoard.getText());
-	        			System.out.println(userList.isSelectionEmpty());
 	        		}
 	        		else{
 	        			output = "changeBoard " + boardList.getSelectedValue();
 	        			boardList.clearSelection();
 	        		}
+	        		userListModel.clear();
 	        		newBoard.setText("");
 	        		clientGUI.sendMessage(output);
 	        	}
@@ -112,7 +112,8 @@ public class ClientInfoPanel extends JPanel{
 			changeName.addActionListener(new ActionListener(){
 				public void actionPerformed(ActionEvent e) {
 					clientGUI.sendMessage("setUsername " + changeName.getText());
-					userID.setText("Your username is: " + changeName.getText() + " change username: ");
+					System.out.println("setUsername " + changeName.getText());
+//					userID.setText("Your username is: " + changeName.getText() + " change username: ");
 					changeName.setText("");
 				}
 			});
@@ -132,17 +133,28 @@ public class ClientInfoPanel extends JPanel{
 	    }
 
 	    public synchronized void parseUsers(String message){
-	    	if(message.startsWith("userJoined")){
+	    	if(message.startsWith(ClientGUI.USER_JOINED)){
 	    		userListModel.addElement(message.substring(11));
+	    		System.out.println(message);
 	    	}
-	    	if(message.startsWith("userQuit")){
+	    	if(message.startsWith(ClientGUI.USER_QUIT)){
 	    		userListModel.removeElement(message.substring(9));
+	    		System.out.println(message);
+	    	}
+	    	if(message.startsWith(ClientGUI.USERNAME)){
+	    		userID.setText("Your username is: " + message.substring(9) + " change username: ");
+	    		System.out.println(message);
+	    	}
+	    	if(message.startsWith(ClientGUI.USERNAME_CHANGED)){
+	    		String names[] = message.split(" ");
+				userID.setText("Your username is: " + names[2] + " change username: ");
+	    		System.out.println(message);
+	    	}
+	    	if(message.startsWith(ClientGUI.BOARD_CHANGED)){
+	    		String[] boards = message.split(" ");
+	    		for(int i=1; i<boards.length; i++)
+	    			listModel.addElement(boards[i]);
 	    	}
 	    }
-        public void addToBoardList(String output){
-        	listModel.addElement(output);
-        }
-        
-
 
 }
