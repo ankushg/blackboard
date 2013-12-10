@@ -108,10 +108,28 @@ public class ClientInfoPanel extends JPanel{
 			});
 			
 			
-			userListModel.addElement()
+//			userListModel.addElement()
 	    }
 	    
-        public void getMessage(String output){
+	    public synchronized void receiveServerMessage(String message){
+	    	final String serverMessage = message;
+	    	SwingUtilities.invokeLater(new Runnable() {
+	    		@Override
+				public void run() {
+	    			parseUsers(serverMessage);
+	    		}
+	    	});
+	    }
+
+	    public synchronized void parseUsers(String message){
+	    	if(message.startsWith("userJoined")){
+	    		userListModel.addElement(message.substring(11));
+	    	}
+	    	if(message.startsWith("userQuit")){
+	    		userListModel.removeElement(message.substring(9));
+	    	}
+	    }
+        public void addToBoardList(String output){
         	listModel.addElement(output);
         }
         

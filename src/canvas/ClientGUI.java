@@ -76,8 +76,13 @@ public class ClientGUI extends JFrame{
 				try {
                     for (String line = r.readLine(); line != null; line = r.readLine()) {
                         for (String drawingMessage: MessageProtocol.DRAWING_MESSAGE_LIST){
+                        	
                         	if (line.startsWith(drawingMessage)){
                         		canvas.receiveDrawingMessage(line);
+                        	}
+                        	
+                        	else{
+                        		infoPanel.receiveServerMessage(line);
                         	}
                         }
                     }
@@ -152,7 +157,7 @@ public class ClientGUI extends JFrame{
 		return r.readLine();
 	}
 	
-    public static void main(final String[] args) {
+    public void main(final String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 ClientGUI main;
