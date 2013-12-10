@@ -47,6 +47,9 @@ public class ClientCanvasPanel extends JPanel{
 		private final ClientCanvas canvas;
     	private int X1,X2,Y1,Y2;
     	
+    	public static final int DEFAULT_WIDTH = 800;
+    	public static final int DEFAULT_HEIGHT = 600;
+    	
     	public ClientCanvasPanel(int width, int height, ClientCanvas canvas) {
     		this.canvas = canvas;
     		recentDrawings = new ArrayList<DrawingLayer>();
@@ -83,10 +86,11 @@ public class ClientCanvasPanel extends JPanel{
 	        // using the coordinates being updated by the mouse listener, since the
 	        // line/shape has not been finalized yet
 	        if (canvas.getCurrentTool().equals(ClientCanvas.LINE_BUTTON)){
-	        	drawPencilSegment(X1, Y1, X2, Y2, (Graphics2D) g);
+	        	drawPencilSegment(X1, Y1, X2, Y2, (Graphics2D) g, false);
 	        }
 	        else if (canvas.getCurrentTool().equals(ClientCanvas.SHAPE_BUTTON)){
-	        	drawShapeSegment(X1, Y1, X2, Y2, (Graphics2D) g);
+	        	drawShapeSegment(X1, Y1, X2, Y2, (Graphics2D) g, false, 
+	        			canvas.getSelectedShape(), canvas.isShapeFilled());
 	        }
 	    }
 	    
@@ -94,7 +98,7 @@ public class ClientCanvasPanel extends JPanel{
 	     * Make the drawing buffer and fill it with white
 	     */
 	    private synchronized void makeDrawingBuffer() {
-	        drawingBuffer = createImage(canvas.getWidth(), canvas.getHeight());
+	        drawingBuffer = createImage(this.getWidth(), this.getHeight());
 	        fillWithWhite((Graphics2D) drawingBuffer.getGraphics());
 	    }
 	    
@@ -129,10 +133,12 @@ public class ClientCanvasPanel extends JPanel{
 	     * 
 	     * Uses information from the selected color and width
 	     */
-	    private void drawPencilSegment(int x1, int y1, int x2, int y2, Graphics2D g) {
+	    private void drawPencilSegment(int x1, int y1, int x2, int y2, Graphics2D g, boolean overrideGraphics) {
 	    	
-	        g.setColor(canvas.getColor());
-	        g.setStroke(canvas.getStroke());
+	    	if (!overrideGraphics){
+	        	g.setColor(canvas.getColor());
+		        g.setStroke(canvas.getStroke());
+	    	}
 	        g.drawLine(x1, y1, x2, y2);
 	        
 	        // IMPORTANT!  every time we draw on the internal drawing buffer, we
@@ -164,13 +170,15 @@ public class ClientCanvasPanel extends JPanel{
 	     * 
 	     * Uses information from the currently selected color and width in the GUI
 	     */
-	    private void drawShapeSegment(int x1, int y1, int x2, int y2, Graphics2D g) {
+	    private void drawShapeSegment(int x1, int y1, int x2, int y2, Graphics2D g, 
+	    					boolean overrideGraphics, String shapeType, boolean fillShape) {
 	    	
-	    	boolean fillShape = canvas.isShapeFilled();
-        	g.setColor(canvas.getColor());
-	        g.setStroke(canvas.getStroke());
+	    	if (!overrideGraphics){
+	        	g.setColor(canvas.getColor());
+		        g.setStroke(canvas.getStroke());
+	    	}
 	        
-	        if (canvas.getSelectedShape().equals(ClientCanvas.SQUARE) || canvas.getSelectedShape().equals(ClientCanvas.CIRCLE)){
+	        if (shapeType.equals(ClientCanvas.SQUARE) || shapeType.equals(ClientCanvas.CIRCLE)){
 	        	Line2D line = getSquareCoordinates(x1, y1, x2, y2);
 	        	x1 = (int) line.getX1();
 	        	x2 = (int) line.getX2();
@@ -183,7 +191,7 @@ public class ClientCanvasPanel extends JPanel{
 	        int xLength = Math.abs(x2-x1);
 	        int yLength = Math.abs(y2-y1);
 	        
-	        if (canvas.getSelectedShape().equals(ClientCanvas.RECTANGLE)){
+	        if (shapeType.equals(ClientCanvas.RECTANGLE)){
 	        	if (fillShape){
 	        		g.fillRect(xOrigin, yOrigin, xLength, yLength);
 	        	}
@@ -191,7 +199,7 @@ public class ClientCanvasPanel extends JPanel{
 	        		g.drawRect(xOrigin, yOrigin, xLength, yLength); 
 	        	}
 	        }
-	        else if (canvas.getSelectedShape().equals(ClientCanvas.OVAL)){
+	        else if (shapeType.equals(ClientCanvas.OVAL)){
 	        	if (fillShape){
 	        		g.fillOval(xOrigin, yOrigin, xLength, yLength);
 	        	}
@@ -200,7 +208,7 @@ public class ClientCanvasPanel extends JPanel{
 	        	}
 	        }
 	        
-	        if (canvas.getSelectedShape().equals(ClientCanvas.SQUARE)){
+	        if (shapeType.equals(ClientCanvas.SQUARE)){
 	        	if (fillShape){
 	        		g.fillRect(xOrigin, yOrigin, xLength, yLength);
 	        	}
@@ -209,7 +217,7 @@ public class ClientCanvasPanel extends JPanel{
 	        	}
 	        }
 	        
-	        else if (canvas.getSelectedShape().equals(ClientCanvas.CIRCLE)){
+	        else if (shapeType.equals(ClientCanvas.CIRCLE)){
 	        	if (fillShape){
 	        		g.fillOval(xOrigin, yOrigin, xLength, yLength);
 	        	}
@@ -232,10 +240,12 @@ public class ClientCanvasPanel extends JPanel{
 	     * 
 	     * Uses information from the selected width
 	     */
-	    private void drawEraseSegment(int x1, int y1, int x2, int y2, Graphics2D g) {
+	    private void drawEraseSegment(int x1, int y1, int x2, int y2, Graphics2D g, boolean overrideGraphics) {
 	        
-	        g.setColor(Color.white);
-	        g.setStroke(canvas.getStroke());
+	    	if (!overrideGraphics) {
+		        g.setColor(Color.white);
+		        g.setStroke(canvas.getStroke());
+	    	}
 	        g.drawLine(x1, y1, x2, y2);
 	        
 	        // IMPORTANT!  every time we draw on the internal drawing buffer, we
@@ -248,7 +258,7 @@ public class ClientCanvasPanel extends JPanel{
 	     * returns it
 	     * 
 	     * @param eraseAll an optional boolean that signifies 
-	     * 		that this Drawing erased the whole canvas
+	     * 		whether this Drawing erased the whole canvas
 	     * @return DrawingLayer the drawing just added
 	     */
 	    private synchronized DrawingLayer createNewDrawing() {
@@ -262,10 +272,75 @@ public class ClientCanvasPanel extends JPanel{
 	    private synchronized DrawingLayer createNewDrawing(boolean eraseAll){
 	    	drawingCounter += 1;
 	    	recentDrawings.add(new DrawingLayer(canvas.getUserID()+drawingCounter, this.getWidth(), 
-	    			this.getHeight(), canvas.getColor(), canvas.getStroke(), canvas.ERASE_ALL_BUTTON, 
+	    			this.getHeight(), canvas.getColor(), canvas.getStroke(), ClientCanvas.ERASE_ALL_BUTTON, 
 	    			canvas.getSelectedShape(), canvas.isShapeFilled()));
 	    	return recentDrawings.get(recentDrawings.size()-1);
 	    }
+	    
+	    /**
+	     * Reads a new drawing message from the WhiteboardServer, draws it to the
+	     * drawingBuffer, and removes it from recentDrawings if it exists
+	     * 
+	     * @see MessageProtocol# for message formatting info
+	     * 
+	     * @param drawingMessage
+	     */
+	    public synchronized void receiveDrawingMessage(String message){
+	    	DrawingLayer drawing = MessageProtocol.readMessage(message);
+	    	drawToBuffer(drawing);
+	    	removeDrawingLayer(drawing.getDrawingID());
+	    }
+	    
+	    /**
+	     * Draws the DrawingLayer directly to the drawingBuffer,
+	     * 
+	     * @param drawing the DrawingLayer to draw to the buffer
+	     */
+	    private synchronized void drawToBuffer(DrawingLayer drawing){
+	    	ArrayList<Point> pointList = drawing.getPointList();
+	    	Graphics2D g = (Graphics2D) drawingBuffer.getGraphics();
+	    	
+	    	g.setStroke(drawing.getStroke());
+	    	g.setColor(drawing.getColor());
+	    	
+	    	if (drawing.getDrawingType().equals(ClientCanvas.PENCIL_BUTTON) || drawing.getDrawingType().equals(ClientCanvas.LINE_BUTTON)){
+				for (int i=0; i<pointList.size()-1; i++){
+					drawPencilSegment(pointList.get(0).x, pointList.get(0).y
+							,pointList.get(1).x, pointList.get(1).y, g, true);
+				}
+			}
+			else if (drawing.getDrawingType().equals(ClientCanvas.ERASE_BUTTON)){
+				for (int i=0; i<pointList.size()-1; i++){
+					drawEraseSegment(pointList.get(0).x, pointList.get(0).y
+							,pointList.get(1).x, pointList.get(1).y, g, true);
+				}
+			}
+			else if (drawing.getDrawingType().equals(ClientCanvas.SHAPE_BUTTON)){
+				drawShapeSegment(pointList.get(0).x, pointList.get(0).y ,pointList.get(1).x, 
+						pointList.get(1).y, g, true, drawing.getShapeType(), drawing.getShapeFilled());
+			}
+			else {
+				fillWithWhite(g);
+			}
+	    }
+	    
+	    /**
+	     * Removes the drawing from the list of recentDrawings
+	     * 
+	     * @param drawingID the drawing to be removed
+	     */
+	    private synchronized void removeDrawingLayer(String drawingID){
+	    	int drawingIndex = -1;
+	    	for (DrawingLayer drawing:recentDrawings){
+	    		if (drawing.getDrawingID().equals(drawingID)){
+	    			drawingIndex = recentDrawings.indexOf(drawing);
+	    		}
+	    	}
+	    	if (drawingIndex != -1){
+	    		recentDrawings.remove(drawingIndex);
+	    	}
+	    }
+
 	    
 	    /**
 	     * Converts two points to represent the diagonal of a square 
@@ -275,7 +350,8 @@ public class ClientCanvasPanel extends JPanel{
 	     * @param y1
 	     * @param x2
 	     * @param y2
-	     * @return
+	     * @return Line2D object representing the x's and y's to use for 
+	     * 			drawing a square-like object
 	     */
 	    public static Line2D getSquareCoordinates(int x1, int y1, int x2, int y2){
 	    	
@@ -368,22 +444,22 @@ public class ClientCanvasPanel extends JPanel{
 	            
 	            // if we are in pencil/erase, we want to keep a running list of points, so
 	            // continue adding to the drawings list of points
-	            if (ClientCanvas.PENCIL_BUTTON.equals(canvas.getCurrentTool())){
-		            drawPencilSegment(lastX, lastY, x, y, currentDrawingGraphics);
+	            if (ClientCanvas.PENCIL_BUTTON.equals(currentDrawing.getDrawingType())){
+		            drawPencilSegment(lastX, lastY, x, y, currentDrawingGraphics, false);
 		            lastX = x;
 		            lastY = y;
 		            currentDrawing.addPoint(x, y);
 	            }
-	            else if (ClientCanvas.ERASE_BUTTON.equals(canvas.getCurrentTool())){
-	            	drawEraseSegment(lastX, lastY, x, y, currentDrawingGraphics);
+	            else if (ClientCanvas.ERASE_BUTTON.equals(currentDrawing.getDrawingType())){
+	            	drawEraseSegment(lastX, lastY, x, y, currentDrawingGraphics, false);
 		            lastX = x;
 		            lastY = y;
 		            currentDrawing.addPoint(x, y);
 	            }
-	            else if (ClientCanvas.LINE_BUTTON.equals(canvas.getCurrentTool())){
+	            else if (ClientCanvas.LINE_BUTTON.equals(currentDrawing.getDrawingType())){
 	            	drawTempSegment(lastX, lastY, x, y);
 	            }
-	            else if (ClientCanvas.SHAPE_BUTTON.equals(canvas.getCurrentTool())){
+	            else if (ClientCanvas.SHAPE_BUTTON.equals(currentDrawing.getDrawingType())){
 	            	drawTempSegment(lastX, lastY, x, y);
 	            }
 	        }
@@ -396,17 +472,18 @@ public class ClientCanvasPanel extends JPanel{
 	            // Get the current drawing layer
 	            Graphics2D currentDrawingGraphics = (Graphics2D) currentDrawing.getImage().getGraphics();
 	     	            
-	            if (ClientCanvas.PENCIL_BUTTON.equals(canvas.getCurrentTool())){
-		            drawPencilSegment(lastX, lastY, lastX, lastY, currentDrawingGraphics);
+	            if (ClientCanvas.PENCIL_BUTTON.equals(currentDrawing.getDrawingType())){
+		            drawPencilSegment(lastX, lastY, lastX, lastY, currentDrawingGraphics, false);
 	            }
-	            else if (ClientCanvas.ERASE_BUTTON.equals(canvas.getCurrentTool())){
-	            	drawEraseSegment(lastX, lastY, lastX, lastY, currentDrawingGraphics);
+	            else if (ClientCanvas.ERASE_BUTTON.equals(currentDrawing.getDrawingType())){
+	            	drawEraseSegment(lastX, lastY, lastX, lastY, currentDrawingGraphics, false);
 	            }
-	            else if (ClientCanvas.LINE_BUTTON.equals(canvas.getCurrentTool())){
-	            	drawPencilSegment(lastX, lastY, x, y, currentDrawingGraphics);
+	            else if (ClientCanvas.LINE_BUTTON.equals(currentDrawing.getDrawingType())){
+	            	drawPencilSegment(lastX, lastY, x, y, currentDrawingGraphics, false);
 	            }
-	            else if (ClientCanvas.SHAPE_BUTTON.equals(canvas.getCurrentTool())){
-	            	drawShapeSegment(lastX, lastY, x, y, currentDrawingGraphics);
+	            else if (ClientCanvas.SHAPE_BUTTON.equals(currentDrawing.getDrawingType())){
+	            	drawShapeSegment(X1, Y1, X2, Y2, currentDrawingGraphics, false, 
+		        			canvas.getSelectedShape(), canvas.isShapeFilled());
 	            }
 	            currentDrawing.addPoint(x, y);
 	            

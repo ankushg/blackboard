@@ -33,12 +33,6 @@ public class DrawingLayer {
 	private final Stroke stroke;
 	private final boolean shapeFilled;
 	
-	public static final String LINE_MESSAGE = "drawLineSegment";
-	public static final String ERASE_MESSAGE = "eraseLineSegment";
-	public static final String OVAL_MESSAGE = "drawOval"; 
-	public static final String RECTANGLE_MESSAGE = "drawRectangle";
-	public static final String ERASE_ALL_MESSAGE = "eraseAll";
-	
 	// create a DrawingLayer without the optional arg shapeType
 	public DrawingLayer(String drawingID, int width, int height, Color color, Stroke stroke, String drawingType){
 		this.drawingID = drawingID;
@@ -79,6 +73,21 @@ public class DrawingLayer {
 		return drawingType;
 	}
 	
+	// return what type of shape this drawing is
+	public String getShapeType(){
+		return shapeType;
+	}
+	
+	// return the list of points in this drawing
+	public ArrayList<Point> getPointList(){
+		return (ArrayList<Point>) pointList.clone();
+	}
+	
+	// return whether the shape is filled or not
+	public boolean getShapeFilled(){
+		return shapeFilled;
+	}
+	
 	// return the color of this drawing
 	public Color getColor(){
 		return new Color(color.getRGB());
@@ -92,71 +101,12 @@ public class DrawingLayer {
 	
 	
 	/**
-	 * Creates a message to be sent to the server for how to draw this drawing,
-	 * using the following protocol:
-	 * 
-	 * BRUSH:    -c [color] -w [strokeWidth] -f
-	 * 	Note: a BRUSH must be sent with each operation that does not use 
-	 * 		the client's default; the server does not track Brush states between operations.
-	 * 
-     * [operation] BRUSH? (points) -i (bufferlayeridentifier)
-     * drawLineSegment x1 y1 x2 y2
-     * eraseLineSegment x1 y1 x2 y2
-     * drawRectangle x1 y1 xLen yLen
-     * drawOval x1 y1 xLen yLen
-     * eraseAll 
+	 * Creates a message to be sent to the server for how to draw this drawing 
 	 * 
 	 * @return String message to send to the server
 	 */
 	public synchronized String createMessage(){
-		String out = "";
-		
-		// determine which type of drawing operation we should send
-		if (drawingType.equals(ClientCanvas.PENCIL_BUTTON) || drawingType.equals(ClientCanvas.LINE_BUTTON)){
-			out += LINE_MESSAGE;
-		}
-		else if (drawingType.equals(ClientCanvas.ERASE_BUTTON)){
-			out += ERASE_MESSAGE;
-		}
-		else if (drawingType.equals(ClientCanvas.SHAPE_BUTTON)){
-			if (shapeType.equals(ClientCanvas.CIRCLE) || shapeType.equals(ClientCanvas.OVAL)){
-				out += OVAL_MESSAGE;
-			}
-			else{
-				out += RECTANGLE_MESSAGE;
-			}
-		}
-		else {
-			out += ERASE_ALL_MESSAGE;
-			return out;
-		}
-		
-		
-		// add the brush info
-		out += " -c [" + color.getRGB() + "]";
-		out += " -w [" + ((BasicStroke) stroke).getLineWidth() + "]";
-		if (shapeFilled) out += " -f";
-		
-		// add the points to the message
-		if (pointList.size()<2){ // if we dont have at least two points, then pretend we are drawing at the origin
-			out += " 0 0 0 0";
-		}
-		else{
-			if ((drawingType.equals(ClientCanvas.SHAPE_BUTTON)) && 
-					(shapeType.equals(ClientCanvas.CIRCLE) || shapeType.equals(ClientCanvas.SQUARE))){
-				Line2D line = ClientCanvasPanel.getSquareCoordinates(pointList.get(0).x, pointList.get(0).y, 
-																		pointList.get(1).x, pointList.get(1).y);
-				out += " "+(int) line.getX1()+" "+(int) line.getY1()+" "+(int) line.getX2()+" "+(int) line.getY2();
-			}
-			else{
-				for (Point point:pointList){
-					out += " "+point.x+" "+point.y;
-				}
-			}
-		}
-
-		out += " -i "+drawingID;
-		return out;
+		return MessageProtocol.createMessage(this);
 	}
 	
 	/**

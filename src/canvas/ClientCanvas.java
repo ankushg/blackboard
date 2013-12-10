@@ -41,7 +41,6 @@ import javax.swing.SwingUtilities;
  * 
  * TODO: Change interface to use icons instead of text
  * TODO: Make interface more user friendly
- * TODO: Fix the stuff that happens on the size after resizing the window
  * TODO: Get the userID info from the ClientGUI after establishing a connection
  * 
  * 

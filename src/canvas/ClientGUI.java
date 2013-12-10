@@ -38,7 +38,7 @@ public class ClientGUI extends JFrame{
 	
 	
 	public ClientGUI(){
-		canvas = new ClientCanvas(800,600);
+		canvas = new ClientCanvas(ClientCanvasPanel.DEFAULT_WIDTH,ClientCanvasPanel.DEFAULT_HEIGHT);
 		infoPanel = new ClientInfoPanel();
 		
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
