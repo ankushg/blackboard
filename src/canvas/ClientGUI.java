@@ -75,7 +75,7 @@ public class ClientGUI extends JFrame{
 			public void run() {
 				try {
                     for (String line = r.readLine(); line != null; line = r.readLine()) {
-                        for (String drawingMessage: MessageProtocol.DRAWING_MESSAGE_LIST){
+                        for (String drawingMessage: DrawingOperationProtocol.DRAWING_MESSAGE_LIST){
                         	// if we have a drawing message, send it only to the canvas
                         	if (line.startsWith(drawingMessage)){
                         		canvas.receiveDrawingMessage(line);

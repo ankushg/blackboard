@@ -5,19 +5,30 @@ import java.awt.Color;
 import java.awt.Image;
 import java.awt.Point;
 import java.awt.Stroke;
-import java.awt.geom.Line2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 
 /**
  * A class to represent a layer in a ClientCanvasPanel. This layer is given an ID number
  * so that it can be removed once the server responds that this message has been drawn to 
- * the buffer. This class also generates the message for drawing itself to the server
+ * the buffer. This class also generates the message for drawing itself to the server. 
+ * 
+ * 
+ * 
+ * The field drawingImage is provided to allow multiple drawings to be drawn on top of the buffer before
+ * they are processed by the server. The attribute field should be drawn on by a ClientCanvasPanel
  * 
  * Rep Invariant:
  * If the drawing is a pencil/erase, then pointList should contain 2>= x,y points
  * If the drawing is a shape/line, then pointList should only contain two points
- * These points should be added before createMessage is called
+ * All points in the drawing should be added before createMessage is called
+ * 
+ * Concurrency Argument:
+ * All fields in this class (except drawingImage) that show risk of concurrency 
+ * 		are only ever accessed by obtaining the lock for the class
+ * The field drawingImage is not thread-safe, as it needs to be drawn on externally in order for it
+ * 		to physically represent the drawing that this class abstracts. This drawingImage should be drawn on
+ * 		and accessed in a thread-safe manner to prevent concurrency issues
  * 
  * @author jlmart88
  *
@@ -33,19 +44,7 @@ public class DrawingLayer {
 	private final Stroke stroke;
 	private final boolean shapeFilled;
 	
-	// create a DrawingLayer without the optional arg shapeType
-	public DrawingLayer(String drawingID, int width, int height, Color color, Stroke stroke, String drawingType){
-		this.drawingID = drawingID;
-		this.drawingType = drawingType;
-		this.color = new Color(color.getRGB());
-		BasicStroke basicStroke = (BasicStroke) stroke;
-		this.stroke = new BasicStroke(basicStroke.getLineWidth(),  basicStroke.getEndCap(), basicStroke.getLineJoin());
-		this.shapeType = null;
-		this.shapeFilled = false;
-		drawingImage = new BufferedImage(width,height,BufferedImage.TYPE_INT_ARGB);	
-		pointList = new ArrayList<Point>();
-	}
-	// create a DrawingLayer with the optional arg shapeType
+	// create a DrawingLayer
 	public DrawingLayer(String drawingID, int width, int height, Color color, Stroke stroke, String drawingType, String shapeType, boolean shapeFilled){
 		this.drawingID = drawingID;
 		this.drawingType = drawingType;
@@ -59,7 +58,7 @@ public class DrawingLayer {
 	}
 	
 	// return the image for this drawing to be drawn on
-	public Image getImage(){
+	public synchronized Image getImage(){
 		return drawingImage;
 	}
 	
@@ -69,7 +68,7 @@ public class DrawingLayer {
 	}
 	
 	// return what tool was used to create this drawing
-	public String getDrawingType(){
+	public  String getDrawingType(){
 		return drawingType;
 	}
 	
@@ -79,8 +78,12 @@ public class DrawingLayer {
 	}
 	
 	// return the list of points in this drawing
-	public ArrayList<Point> getPointList(){
-		return (ArrayList<Point>) pointList.clone();
+	public synchronized ArrayList<Point> getPointList(){
+		ArrayList<Point> out = new ArrayList<Point>();
+		for (Point point: pointList){
+			out.add(point);
+		}
+		return out;
 	}
 	
 	// return whether the shape is filled or not
@@ -94,7 +97,7 @@ public class DrawingLayer {
 	}
 	
 	// return the stroke of this drawing
-	public Stroke getStroke(){
+	public synchronized Stroke getStroke(){
 		BasicStroke basicStroke = (BasicStroke) stroke;
 		return new BasicStroke(basicStroke.getLineWidth(), basicStroke.getEndCap(), basicStroke.getLineJoin());
 	}
@@ -106,7 +109,7 @@ public class DrawingLayer {
 	 * @return String message to send to the server
 	 */
 	public synchronized String createMessage(){
-		return MessageProtocol.createMessage(this);
+		return DrawingOperationProtocol.createMessage(this);
 	}
 	
 	/**

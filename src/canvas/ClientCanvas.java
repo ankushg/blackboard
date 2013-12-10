@@ -313,7 +313,7 @@ public class ClientCanvas extends JPanel{
     /**
      * Sends a new drawing message to the WhiteboardServer
      * 
-     * @see MessageProtocol# for message formatting info
+     * @see DrawingOperationProtocol# for message formatting info
      * 
      * @param message
      */
@@ -324,7 +324,7 @@ public class ClientCanvas extends JPanel{
     /**
      * Receives a new drawing message to the WhiteboardServer
      * 
-     * @see MessageProtocol# for message formatting info
+     * @see DrawingOperationProtocol# for message formatting info
      * 
      * @param message
      */

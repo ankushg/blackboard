@@ -2,12 +2,9 @@ package canvas;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
-import java.awt.Image;
 import java.awt.Point;
 import java.awt.Stroke;
 import java.awt.geom.Line2D;
-import java.io.File;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -17,24 +14,25 @@ import java.util.Queue;
 /**
  * A class to serve as the transition between DrawingLayers and
  * the message protocol for communicating with a WhiteboardServer
- * 
  * using the following protocol:
  * 
- * BRUSH:    -c [color] -w [strokeWidth] -f
- * 	Note: a BRUSH must be sent with each operation that does not use 
- * 		the client's default; the server does not track Brush states between operations.
+ * DRAWING_OPERATION: OPERATION SPACE BRUSH FILLED_FLAG? SPACE POINTS SPACE DRAWING_ID | ERASE_ALL
  * 
- * [operation] BRUSH? (points) -i (bufferlayeridentifier)
- * drawLineSegment x1 y1 x2 y2
- * eraseLineSegment x1 y1 x2 y2
- * drawRectangle x1 y1 xLen yLen
- * drawOval x1 y1 xLen yLen
- * eraseAll
- * 
+ * ERASE_ALL: "eraseAll" SPACE DRAWING_ID
+ * BRUSH: "-c" SPACE "[" INT "]" SPACE "-w" SPACE "[" INT "]" SPACE
+ * OPERATION: "drawLineSegment" | "eraseLineSegment" | "drawRectangle" | "drawOval"
+ * POINTS: "-p" SPACE "[" POINT{2,} "]"
+ * POINT: INT SPACE INT SPACE?
+ * DRAWING_ID: "-i" SPACE "[" STRING "]"
+ * FILLED_FLAG: SPACE "-f" 
+ * STRING: ([a-z] | [A-Z] | INT | SPACE)+
+ * INT: [0-9]+
+ * SPACE: " "
+ *  
  * @author jlmart88
  *
  */
-public class MessageProtocol {
+public class DrawingOperationProtocol {
 	
 	public static final String LINE_MESSAGE = "drawLineSegment";
 	public static final String ERASE_MESSAGE = "eraseLineSegment";
@@ -186,6 +184,7 @@ public class MessageProtocol {
             }
         } catch (IllegalArgumentException iae) {
             System.err.println(iae.getMessage());
+            System.err.println("Improperly Formatted Message, see DrawingOperationProtocol for more info");
         }
 		
 		DrawingLayer out = new DrawingLayer(drawingID, ClientCanvasPanel.DEFAULT_WIDTH, ClientCanvasPanel.DEFAULT_HEIGHT,

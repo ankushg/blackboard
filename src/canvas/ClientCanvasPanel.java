@@ -11,17 +11,28 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.geom.Line2D;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.swing.JPanel;
 
 /**
- * ClientCanvasPanel represents the actual drawing surface that allows the user to draw
- * on it using tools such as freehand, shapes, etc. and allows the
+ * ClientCanvasPanel represents the actual drawing surface where the user 
+ * can draw using tools such as freehand, shapes, etc., and allows the
  * user to erase as well. The canvas communicates with a ServerCanvas
  * to allow collaboration on a whiteboard among multiple users
  * 
+ * Concurrency Argument:
+ * The fields drawingCounter, drawingBuffer, and recentDrawings are only ever
+ * 		accessed/modified after synchronizing on the class
+ * 
+ * 
+ * 
+ * TODO: Finish Concurrency Argument
  * TODO: Write tests for message creation
  * TODO: Write tests for message receiving
+ * TODO: Document methods better
  * 
  * @author jlmart88
  *
@@ -30,9 +41,10 @@ public class ClientCanvasPanel extends JPanel{
 
 		private static final long serialVersionUID = 1L;
 		
-		// this counter is used to create a new drawing ID
-		// for each new drawing
-		private int drawingCounter = 0;
+		// this counter is used to create a new drawingID
+		// for each new drawing, and ensures that each drawingID
+		// from this user will be unique
+		static final AtomicLong drawingCounter = new AtomicLong(0);
 		
 		// Image where the user's drawing is stored
 		// this Image is only updated by messages received from the server
@@ -42,7 +54,7 @@ public class ClientCanvasPanel extends JPanel{
 	    // this list will be iterated through every time a drawing command occurs
 	    //		and will be removed from whenever a response is received notifying 
 	    //		that the drawing command has been processed
-	    private ArrayList<DrawingLayer> recentDrawings;
+	    private List<DrawingLayer> recentDrawings;
 	    
 		private final ClientCanvas canvas;
     	private int X1,X2,Y1,Y2;
@@ -52,7 +64,7 @@ public class ClientCanvasPanel extends JPanel{
     	
     	public ClientCanvasPanel(int width, int height, ClientCanvas canvas) {
     		this.canvas = canvas;
-    		recentDrawings = new ArrayList<DrawingLayer>();
+    		recentDrawings = Collections.synchronizedList(new ArrayList<DrawingLayer>());
             this.setPreferredSize(new Dimension(width, height));
             
             addDrawingController();
@@ -65,7 +77,7 @@ public class ClientCanvasPanel extends JPanel{
 	     * @see javax.swing.JComponent#paintComponent(java.awt.Graphics)
 	     */
 	    @Override
-	    public void paintComponent(Graphics g) {
+	    public synchronized void paintComponent(Graphics g) {
 	    	
 	        // If this is the first time paintComponent() is being called,
 	        // make our drawing buffer
@@ -241,8 +253,8 @@ public class ClientCanvasPanel extends JPanel{
 	     */
 	    private void drawEraseSegment(int x1, int y1, int x2, int y2, Graphics2D g, boolean overrideGraphics) {
 	        
+	        g.setColor(Color.white);
 	    	if (!overrideGraphics) {
-		        g.setColor(Color.white);
 		        g.setStroke(canvas.getStroke());
 	    	}
 	        g.drawLine(x1, y1, x2, y2);
@@ -261,16 +273,16 @@ public class ClientCanvasPanel extends JPanel{
 	     * @return DrawingLayer the drawing just added
 	     */
 	    private synchronized DrawingLayer createNewDrawing() {
-	    	drawingCounter += 1;
-	    	recentDrawings.add(new DrawingLayer(canvas.getUserID()+drawingCounter, this.getWidth(), 
+	    	long drawingID = drawingCounter.getAndIncrement();
+	    	recentDrawings.add(new DrawingLayer(canvas.getUserID()+drawingID, this.getWidth(), 
 	    			this.getHeight(), canvas.getColor(), canvas.getStroke(), canvas.getCurrentTool(), 
 	    			canvas.getSelectedShape(), canvas.isShapeFilled()));
             
 	    	return recentDrawings.get(recentDrawings.size()-1);
 	    }
 	    private synchronized DrawingLayer createNewDrawing(boolean eraseAll){
-	    	drawingCounter += 1;
-	    	recentDrawings.add(new DrawingLayer(canvas.getUserID()+drawingCounter, this.getWidth(), 
+	    	long drawingID = drawingCounter.getAndIncrement();
+	    	recentDrawings.add(new DrawingLayer(canvas.getUserID()+drawingID, this.getWidth(), 
 	    			this.getHeight(), canvas.getColor(), canvas.getStroke(), ClientCanvas.ERASE_ALL_BUTTON, 
 	    			canvas.getSelectedShape(), canvas.isShapeFilled()));
 	    	return recentDrawings.get(recentDrawings.size()-1);
@@ -279,7 +291,7 @@ public class ClientCanvasPanel extends JPanel{
 	    /**
 	     * Sends a new drawing message to the WhiteboardServer
 	     * 
-	     * @see MessageProtocol# for message formatting info
+	     * @see DrawingOperationProtocol# for message formatting info
 	     * 
 	     * @param message
 	     */
@@ -291,7 +303,7 @@ public class ClientCanvasPanel extends JPanel{
 	     * Reads a new drawing message from the WhiteboardServer, draws it to the
 	     * drawingBuffer, and removes it from recentDrawings if it exists
 	     * 
-	     * @see MessageProtocol# for message formatting info
+	     * @see DrawingOperationProtocol# for message formatting info
 	     * 
 	     * @param message
 	     */
@@ -301,7 +313,7 @@ public class ClientCanvasPanel extends JPanel{
 	    		fillWithWhite((Graphics2D) drawingBuffer.getGraphics());
 	    	}
 	    	else {
-		    	DrawingLayer drawing = MessageProtocol.readMessage(message);
+		    	DrawingLayer drawing = DrawingOperationProtocol.readMessage(message);
 		    	drawToBuffer(drawing);
 		    	removeDrawingLayer(drawing.getDrawingID());
 	    	}
@@ -455,8 +467,8 @@ public class ClientCanvasPanel extends JPanel{
 	         */
 	        public void mouseDragged(MouseEvent e) {
 	        	// Take the min to prevent from drawing off of the screen
-	            int x = Math.min(e.getX(),getWidth());
-	            int y = Math.min(e.getY(),getHeight());
+	            int x = Math.max(Math.min(e.getX(),getWidth()),0);
+	            int y = Math.max(Math.min(e.getY(),getHeight()),0);
 	            
 	            // Get the current drawing layer
 	            Graphics2D currentDrawingGraphics = (Graphics2D) currentDrawing.getImage().getGraphics();
@@ -485,8 +497,8 @@ public class ClientCanvasPanel extends JPanel{
 	        
 	        public void mouseReleased(MouseEvent e) { 
 	        	// Take the min to prevent from drawing off of the screen
-	            int x = Math.min(e.getX(),getWidth());
-	            int y = Math.min(e.getY(),getHeight());
+	        	int x = Math.max(Math.min(e.getX(),getWidth()),0);
+	            int y = Math.max(Math.min(e.getY(),getHeight()),0);
 	            
 	            // Get the current drawing layer
 	            Graphics2D currentDrawingGraphics = (Graphics2D) currentDrawing.getImage().getGraphics();
