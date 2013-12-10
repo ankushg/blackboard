@@ -1,4 +1,4 @@
-package canvas;
+package client;
 
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;

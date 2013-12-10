@@ -1,4 +1,4 @@
-package canvas;
+package model;
 
 import java.awt.BasicStroke;
 import java.awt.Color;

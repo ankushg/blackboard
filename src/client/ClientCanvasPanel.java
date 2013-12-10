@@ -1,4 +1,4 @@
-package canvas;
+package client;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -16,6 +16,10 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.swing.JPanel;
+
+import model.DrawingLayer;
+import model.DrawingOperationProtocol;
+
 
 /**
  * ClientCanvasPanel represents the actual drawing surface where the user 

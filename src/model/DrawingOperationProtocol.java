@@ -1,4 +1,4 @@
-package canvas;
+package model;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -10,6 +10,9 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 import java.util.Queue;
+
+import client.ClientCanvas;
+import client.ClientCanvasPanel;
 
 /**
  * A class to serve as the transition between DrawingLayers and

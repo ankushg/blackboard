@@ -1,4 +1,4 @@
-package canvas;
+package client;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -43,7 +43,7 @@ public class ClientInfoPanel extends JPanel{
 	    public ClientInfoPanel(final ClientGUI clientGUI) throws IOException {
 	    	this.clientGUI = clientGUI;
 	    	username = "";
-	    	userID = new JLabel("Your username is: " + username + " change username:");
+	    	userID = new JLabel("Your username is: " + username);
 	    	changeName = new JTextField(10);
 	    	serverInfo = new JLabel("Choose a whiteboard to draw on or add a new whiteboard.");
 	    	userInfo = new JLabel("Connected users in your current board");
@@ -63,10 +63,8 @@ public class ClientInfoPanel extends JPanel{
 	                    .addComponent(userInfo)
 	                    .addComponent(userList)
 	                    .addComponent(newBoard)
-	                    .addGroup(groupLayout.createSequentialGroup()
-	                    		.addComponent(userID)
-	                    		.addComponent(changeName))
-	            );
+                		.addComponent(userID)
+                		.addComponent(changeName));
 	            groupLayout.setVerticalGroup(
 	                groupLayout.createSequentialGroup()
 	                    .addComponent(serverInfo)
@@ -74,10 +72,8 @@ public class ClientInfoPanel extends JPanel{
 	                    .addComponent(userInfo)
 	                    .addComponent(userList)
 	                    .addComponent(newBoard)
-	                    .addGroup(groupLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-	                    		.addComponent(userID)
-	                    		.addComponent(changeName))
-	            );
+                		.addComponent(userID)
+                		.addComponent(changeName));
 	        
 	        setVisible(true);
 	        
@@ -115,7 +111,6 @@ public class ClientInfoPanel extends JPanel{
 				public void actionPerformed(ActionEvent e) {
 					clientGUI.sendMessage("setUsername " + changeName.getText());
 					System.out.println("setUsername " + changeName.getText());
-//					userID.setText("Your username is: " + changeName.getText() + " change username: ");
 					changeName.setText("");
 				}
 			});
@@ -144,12 +139,12 @@ public class ClientInfoPanel extends JPanel{
 	    		System.out.println(message);
 	    	}
 	    	if(message.startsWith(ClientGUI.USERNAME)){
-	    		userID.setText("Your username is: " + message.substring(9) + " change username: ");
+	    		userID.setText("Your username is: " + message.substring(9));
 	    		System.out.println(message);
 	    	}
 	    	if(message.startsWith(ClientGUI.USERNAME_CHANGED)){
 	    		String names[] = message.split(" ");
-				userID.setText("Your username is: " + names[2] + " change username: ");
+				userID.setText("Your username is: " + names[2]);
 	    		System.out.println(message);
 	    	}
 	    

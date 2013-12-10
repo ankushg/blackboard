@@ -1,4 +1,4 @@
-package canvas;
+package client;
 
 import java.awt.Container;
 import java.io.BufferedReader;
@@ -15,6 +15,9 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+
+import model.DrawingOperationProtocol;
+
 
 public class ClientGUI extends JFrame {
 
@@ -38,7 +41,7 @@ public class ClientGUI extends JFrame {
 		canvas = new ClientCanvas(ClientCanvasPanel.DEFAULT_WIDTH,
 				ClientCanvasPanel.DEFAULT_HEIGHT, this);
 		infoPanel = new ClientInfoPanel(this);
-
+		this.setTitle("Powerboard 3000");
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.setResizable(false);
 
