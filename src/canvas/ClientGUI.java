@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.ArrayList;
 
 import javax.swing.Box;
 import javax.swing.DefaultListModel;
@@ -37,9 +38,9 @@ public class ClientGUI extends JFrame{
 	private final ClientInfoPanel infoPanel;
 	
 	
-	public ClientGUI(){
+	public ClientGUI() throws IOException{
 		canvas = new ClientCanvas(800,600);
-		infoPanel = new ClientInfoPanel();
+		infoPanel = new ClientInfoPanel(this);
 		
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.setResizable(false);
@@ -70,11 +71,12 @@ public class ClientGUI extends JFrame{
 	/**
 	 * Prompts the user with a dialog for server info, then initializes a socket connection
 	 * with the server
+	 * @throws IOException 
 	 */
-	private void showLoginScreen() {
+	private void showLoginScreen() throws IOException {
 		//create the text fields
         JTextField IPAddress= new JTextField(5);
-        IPAddress.setText("127.0.0.1");
+        IPAddress.setText("localhost");
         JTextField portNum = new JTextField(5);
         portNum.setText("4500");
 
@@ -92,6 +94,7 @@ public class ClientGUI extends JFrame{
 				socket = new Socket(IPAddress.getText(), Integer.parseInt(portNum.getText()));
 				w = new PrintWriter(socket.getOutputStream(),true);
 				r = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+				getBoardList();
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
@@ -99,15 +102,34 @@ public class ClientGUI extends JFrame{
         if (result == JOptionPane.CANCEL_OPTION) {
         	this.dispose();
         }
+    }
+        
+        
+    public synchronized void getBoardList() throws IOException{
+        w.print("listBoards");
+//       	while((r.readLine()) != null){
+        	infoPanel.getMessage(r.readLine());
+//        }	
 	}
-	
+
+	public synchronized void sendMessage(String output){
+		w.print(output);
+	}
+    
     public static void main(final String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                ClientGUI main = new ClientGUI();
-                main.setVisible(true);
+                ClientGUI main;
+				try {
+					main = new ClientGUI();
+	                main.setVisible(true);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
             }
         });
     }
+
+
 
 }
