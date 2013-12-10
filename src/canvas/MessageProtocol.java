@@ -70,7 +70,7 @@ public class MessageProtocol {
 			}
 		}
 		else {
-			out += ERASE_ALL_MESSAGE;
+			out += ERASE_ALL_MESSAGE+" -i ["+drawing.getDrawingID()+"]";
 			return out;
 		}
 		
