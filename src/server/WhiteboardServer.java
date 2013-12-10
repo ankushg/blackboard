@@ -352,7 +352,7 @@ public class WhiteboardServer {
                 private void handleConnection(Socket socket) throws IOException {
                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-                    out.println("");
+                    handleClientOperation("getUsername", client);
                     joinBoard(client, "default");
 
                     try {
