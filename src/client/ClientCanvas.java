@@ -24,7 +24,7 @@ import model.DrawingOperationProtocol;
 /**
  * ClientCanvas represents the actual drawing surface where the user 
  * can draw using tools such as freehand, shapes, etc., and allows the
- * user to erase as well. The canvas communicates with a ServerCanvas
+ * user to erase as well. The canvas communicates with a WhiteboardServer
  * to allow collaboration on a whiteboard among multiple users
  * 
  * Concurrency Argument:
@@ -60,14 +60,14 @@ public class ClientCanvas extends JPanel{
 	    //		that the drawing command has been processed
 	    private List<DrawingLayer> recentDrawings;
 	    
-		private final ClientEasel canvas;
+		private final ClientEasel easel;
     	private int X1,X2,Y1,Y2;
     	
     	public static final int DEFAULT_WIDTH = 800;
     	public static final int DEFAULT_HEIGHT = 600;
     	
-    	public ClientCanvas(int width, int height, ClientEasel canvas) {
-    		this.canvas = canvas;
+    	public ClientCanvas(int width, int height, ClientEasel easel) {
+    		this.easel = easel;
     		recentDrawings = Collections.synchronizedList(new ArrayList<DrawingLayer>());
             this.setPreferredSize(new Dimension(width, height));
             
@@ -101,12 +101,12 @@ public class ClientCanvas extends JPanel{
 	        // if we are in line/shape mode, draw on top of everything else 
 	        // using the coordinates being updated by the mouse listener, since the
 	        // line/shape has not been finalized yet
-	        if (canvas.getCurrentTool().equals(ClientEasel.LINE_BUTTON)){
+	        if (easel.getCurrentTool().equals(ClientEasel.LINE_BUTTON)){
 	        	drawPencilSegment(X1, Y1, X2, Y2, (Graphics2D) g, false);
 	        }
-	        else if (canvas.getCurrentTool().equals(ClientEasel.SHAPE_BUTTON)){
+	        else if (easel.getCurrentTool().equals(ClientEasel.SHAPE_BUTTON)){
 	        	drawShapeSegment(X1, Y1, X2, Y2, (Graphics2D) g, false, 
-	        			canvas.getSelectedShape(), canvas.isShapeFilled());
+	        			easel.getSelectedShape(), easel.isShapeFilled());
 	        }
 	    }
 	    
@@ -151,8 +151,8 @@ public class ClientCanvas extends JPanel{
 	    private void drawPencilSegment(int x1, int y1, int x2, int y2, Graphics2D g, boolean overrideGraphics) {
 	    	
 	    	if (!overrideGraphics){
-	        	g.setColor(canvas.getColor());
-		        g.setStroke(canvas.getStroke());
+	        	g.setColor(easel.getColor());
+		        g.setStroke(easel.getStroke());
 	    	}
 	        g.drawLine(x1, y1, x2, y2);
 	        
@@ -189,8 +189,8 @@ public class ClientCanvas extends JPanel{
 	    					boolean overrideGraphics, String shapeType, boolean fillShape) {
 	    	
 	    	if (!overrideGraphics){
-	        	g.setColor(canvas.getColor());
-		        g.setStroke(canvas.getStroke());
+	        	g.setColor(easel.getColor());
+		        g.setStroke(easel.getStroke());
 	    	}
 	        
 	        if (shapeType.equals(ClientEasel.SQUARE) || shapeType.equals(ClientEasel.CIRCLE)){
@@ -259,7 +259,7 @@ public class ClientCanvas extends JPanel{
 	        
 	        g.setColor(Color.white);
 	    	if (!overrideGraphics) {
-		        g.setStroke(canvas.getStroke());
+		        g.setStroke(easel.getStroke());
 	    	}
 	        g.drawLine(x1, y1, x2, y2);
 	        
@@ -278,17 +278,17 @@ public class ClientCanvas extends JPanel{
 	     */
 	    private synchronized DrawingLayer createNewDrawing() {
 	    	long drawingID = drawingCounter.getAndIncrement();
-	    	recentDrawings.add(new DrawingLayer(canvas.getUserID()+drawingID, this.getWidth(), 
-	    			this.getHeight(), canvas.getColor(), canvas.getStroke(), canvas.getCurrentTool(), 
-	    			canvas.getSelectedShape(), canvas.isShapeFilled()));
+	    	recentDrawings.add(new DrawingLayer(easel.getUsername()+drawingID, this.getWidth(), 
+	    			this.getHeight(), easel.getColor(), easel.getStroke(), easel.getCurrentTool(), 
+	    			easel.getSelectedShape(), easel.isShapeFilled()));
             
 	    	return recentDrawings.get(recentDrawings.size()-1);
 	    }
 	    private synchronized DrawingLayer createNewDrawing(boolean eraseAll){
 	    	long drawingID = drawingCounter.getAndIncrement();
-	    	recentDrawings.add(new DrawingLayer(canvas.getUserID()+drawingID, this.getWidth(), 
-	    			this.getHeight(), canvas.getColor(), canvas.getStroke(), ClientEasel.ERASE_ALL_BUTTON, 
-	    			canvas.getSelectedShape(), canvas.isShapeFilled()));
+	    	recentDrawings.add(new DrawingLayer(easel.getUsername()+drawingID, this.getWidth(), 
+	    			this.getHeight(), easel.getColor(), easel.getStroke(), ClientEasel.ERASE_ALL_BUTTON, 
+	    			easel.getSelectedShape(), easel.isShapeFilled()));
 	    	return recentDrawings.get(recentDrawings.size()-1);
 	    }
 	    
@@ -300,7 +300,7 @@ public class ClientCanvas extends JPanel{
 	     * @param message
 	     */
 	    public synchronized void sendDrawingMessage(String message){
-	    	canvas.sendDrawingMessage(message);
+	    	easel.sendDrawingMessage(message);
 	    }
 	    
 	    /**
@@ -312,7 +312,7 @@ public class ClientCanvas extends JPanel{
 	     * @param message
 	     */
 	    public synchronized void receiveDrawingMessage(String message){
-	    	if (message.startsWith("joinedBoard")){
+	    	if (message.startsWith(ClientGUI.BOARD_CHANGED)){
 	    		recentDrawings.clear();
 	    		fillWithWhite((Graphics2D) drawingBuffer.getGraphics());
 	    	}
@@ -518,7 +518,7 @@ public class ClientCanvas extends JPanel{
 	            }
 	            else if (ClientEasel.SHAPE_BUTTON.equals(currentDrawing.getDrawingType())){
 	            	drawShapeSegment(X1, Y1, X2, Y2, currentDrawingGraphics, false, 
-		        			canvas.getSelectedShape(), canvas.isShapeFilled());
+		        			easel.getSelectedShape(), easel.isShapeFilled());
 	            }
 	            currentDrawing.addPoint(x, y);
 	            

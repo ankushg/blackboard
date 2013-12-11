@@ -36,7 +36,7 @@ import javax.swing.SwingUtilities;
  * ClientEasel represents the sub-GUI surrounding a ClientCanvas, which 
  * allows drawing surface that allows the user to draw
  * on it using tools such as freehand, shapes, etc. and allows the
- * user to erase as well. The canvas communicates with a ServerCanvas
+ * user to erase as well. The canvas communicates with a WhiteboardServer
  * to allow collaboration on a whiteboard among multiple users
  * 
  * 
@@ -48,10 +48,9 @@ import javax.swing.SwingUtilities;
  */
 public class ClientEasel extends JPanel{
     
-    private final ClientCanvas whiteboardPanel;
+    private final ClientCanvas canvas;
     
-    // WARNING: Change this once we establish a user id protocol
-    private final String userID = "fillInUserID";
+    private String username;
     
     // whiteboard tools
     private final JToggleButton pencilModeButton;
@@ -93,7 +92,7 @@ public class ClientEasel extends JPanel{
      */
     public ClientEasel(int width, int height, ClientGUI clientGUI) {
         
-        whiteboardPanel = new ClientCanvas(width,height,this);
+        canvas = new ClientCanvas(width,height,this);
         
         pencilModeButton = new JToggleButton("Pencil",  true);
         eraseModeButton = new JToggleButton("Erase",  false);
@@ -142,7 +141,7 @@ public class ClientEasel extends JPanel{
         					.addComponent(currentColorLabel)
         					.addComponent(eraseAllButton)
         					)
-        			.addComponent(whiteboardPanel)
+        			.addComponent(canvas)
         );
         layout.setVerticalGroup(
         		layout.createSequentialGroup()
@@ -157,7 +156,7 @@ public class ClientEasel extends JPanel{
         					.addComponent(currentColorLabel)
         					.addComponent(eraseAllButton)
         					)
-        			.addComponent(whiteboardPanel)
+        			.addComponent(canvas)
         );
 
         //finish toolbar setup
@@ -209,7 +208,7 @@ public class ClientEasel extends JPanel{
         					    options,
         					    options[0]);
         		if (n==0){
-        			whiteboardPanel.eraseAll();
+        			canvas.eraseAll();
         		}
         		
         	}
@@ -231,7 +230,7 @@ public class ClientEasel extends JPanel{
      * 
      * @param button JToggleButton to switch the selected tool to
      */
-    private void toggleSelectedTool(JToggleButton button){
+    private synchronized void toggleSelectedTool(JToggleButton button){
     	if (button.isSelected()){
     		for (JToggleButton otherButton: toolButtonList){
     			if (!otherButton.equals(button)){
@@ -249,7 +248,7 @@ public class ClientEasel extends JPanel{
      * 
      * @return Color object representing the currently selected color in the interface
      */
-    public Color getColor(){
+    public synchronized Color getColor(){
     	return new Color(currentColorLabel.getBackground().getRGB());
     }
     
@@ -258,7 +257,7 @@ public class ClientEasel extends JPanel{
      * 
      * @return Stroke object representing the currently selected stroke type in the interface
      */
-    public Stroke getStroke(){
+    public synchronized Stroke getStroke(){
     	return new BasicStroke(Integer.parseInt(WIDTH_OPTIONS[widthSelectionBox.getSelectedIndex()]
     			.replaceAll("px", "")),
     			BasicStroke.CAP_ROUND, 
@@ -270,7 +269,7 @@ public class ClientEasel extends JPanel{
      * 
      * @return String object representing the currently selected shape type in the interface
      */
-    public String getSelectedShape(){
+    public synchronized String getSelectedShape(){
     	return SHAPE_OPTIONS[shapeSelectionBox.getSelectedIndex()];
     }
     
@@ -279,7 +278,7 @@ public class ClientEasel extends JPanel{
      * 
      * @return String representing the currently selected tool's name in the interface
      */
-    public String getCurrentTool(){
+    public synchronized String getCurrentTool(){
     	for (JToggleButton button: toolButtonList){
     		if (button.isSelected()) return button.getName();
     	}
@@ -292,17 +291,17 @@ public class ClientEasel extends JPanel{
      * 
      * @return Boolean whether the shape should be filled
      */
-    public boolean isShapeFilled(){
+    public synchronized boolean isShapeFilled(){
     	return shapeFilledButton.isSelected();
     }
     
     /**
-     * Returns a String representing the userID of the client
+     * Returns the username of the client
      * 
-     * @return String object representing the userID of the client
+     * @return String the username of the client
      */
-    public String getUserID(){
-    	return userID;
+    public synchronized String getUsername(){
+    	return username;
     }
     
     /**
@@ -317,7 +316,7 @@ public class ClientEasel extends JPanel{
     }
     
     /**
-     * Receives a new drawing message to the WhiteboardServer
+     * Receives a new drawing message from the WhiteboardServer
      * 
      * @see DrawingOperationProtocol# for message formatting info
      * 
@@ -328,10 +327,36 @@ public class ClientEasel extends JPanel{
     	SwingUtilities.invokeLater(new Runnable() {
     		@Override
 			public void run() {
-    			whiteboardPanel.receiveDrawingMessage(drawingMessage);
+    			canvas.receiveDrawingMessage(drawingMessage);
     		}
     	});
     }
-
-
+    
+    /**
+     * Receives a new server message from the WhiteboardServer
+     * 
+     * @see ClientInfoPanel# for message formatting info
+     * 
+     * @param message
+     */
+    public synchronized void receiveServerMessage(String message){
+    	
+    	final String drawingMessage = message;
+    	SwingUtilities.invokeLater(new Runnable() {
+    		@Override
+			public void run() {
+    			// if we changed boards, tell the canvas
+    			if (drawingMessage.startsWith(ClientGUI.BOARD_CHANGED)){
+    				canvas.receiveDrawingMessage(drawingMessage);
+    			}
+    			// otherwise we received a username change
+    			else{
+    				String[] args = drawingMessage.split(" ");
+    				username = args[args.length-1];
+    			}
+    		}
+    	});
+    		
+    }
+    
 }
