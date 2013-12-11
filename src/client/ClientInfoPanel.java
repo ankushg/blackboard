@@ -60,7 +60,6 @@ public class ClientInfoPanel extends JPanel{
 	    	userInfo = new JLabel("Current Users in Your Board");
 	    	newBoard = new JTextField(10);
 	    	newBoardLabel = new JLabel("Create a new board: ");
-	    	
 	    	boardListModel = new DefaultListModel<>();
 	    	userListModel = new DefaultListModel<>();
 	    	boardList = new JList<>(boardListModel);
@@ -164,14 +163,11 @@ public class ClientInfoPanel extends JPanel{
 	                if (lsm.isSelectedIndex(i)) {
 	                    index = i;
 	                }
-
-	    		if (lsm.isSelectionEmpty()) {	
-	    		} 
-	    		else {
+	            }
+	    		if (!(lsm.isSelectionEmpty())) {	
 	    			output = "changeBoard " + (String) boardListModel.getElementAt(index);
 	        		userListModel.clear();
 	    			clientGUI.sendMessage(output);
-	    			}
 	    		}
 	    	}
 	    }
@@ -196,36 +192,41 @@ public class ClientInfoPanel extends JPanel{
 	     * categories. The UI information is updated based on the message.
 	     * @param message
 	     */
-	    protected synchronized void parseUsers(String message){
-	    	if(message.startsWith(ClientGUI.USER_JOINED)){
-	    		userListModel.addElement(message.substring(11));
-	    	}
-	    	if(message.startsWith(ClientGUI.USER_QUIT)){
-	    		userListModel.removeElement(message.substring(9));
-	    	}
-	    	if(message.startsWith(ClientGUI.USERNAME)){
-	    		userID.setText("Your username is: " + message.substring(9));
-	    	}
-	    	if(message.startsWith(ClientGUI.USERNAME_CHANGED)){
-	    		String names[] = message.split(" ");
-				userID.setText("Your username is: " + names[2]);
-	    	}
-	    	if(message.startsWith(ClientGUI.NEW_BOARD)) {
-    			String[] boards = message.split(" ");
-    			boardListModel.addElement(boards[1]);
-    		}
-	    	if(message.startsWith(ClientGUI.BOARD_CHANGED)){
-    			String[] boards = message.split(" ");
-        		userListModel.clear();
-    			boardList.setSelectedValue(boards[2], true);
-	    	}
-	    	if(message.startsWith(ClientGUI.CURRENT_BOARDS)) {
-    			String[] boards = message.split(" ");
-    			for (int i = 1; i < boards.length; i++) {
-    			    if(!boardListModel.contains(boards[i])){
-    			        boardListModel.addElement(boards[i]);
-    			    }
-    			}
-    		}
+	    protected synchronized void parseUsers(String serverMessage){
+	    	final String message = serverMessage;
+        	SwingUtilities.invokeLater(new Runnable() {
+        		public void run() {
+        	    	if(message.startsWith(ClientGUI.USER_JOINED)){
+        	    		userListModel.addElement(message.substring(11));
+        	    	}
+        	    	if(message.startsWith(ClientGUI.USER_QUIT)){
+        	    		userListModel.removeElement(message.substring(9));
+        	    	}
+        	    	if(message.startsWith(ClientGUI.USERNAME)){
+        	    		userID.setText("Your username is: " + message.substring(9));
+        	    	}
+        	    	if(message.startsWith(ClientGUI.USERNAME_CHANGED)){
+        	    		String names[] = message.split(" ");
+        				userID.setText("Your username is: " + names[2]);
+        	    	}
+        	    	if(message.startsWith(ClientGUI.NEW_BOARD)) {
+            			String[] boards = message.split(" ");
+            			boardListModel.addElement(boards[1]);
+            		}
+        	    	if(message.startsWith(ClientGUI.BOARD_CHANGED)){
+            			String[] boards = message.split(" ");
+                		userListModel.clear();
+            			boardList.setSelectedValue(boards[2], true);
+        	    	}
+        	    	if(message.startsWith(ClientGUI.CURRENT_BOARDS)) {
+            			String[] boards = message.split(" ");
+            			for (int i = 1; i < boards.length; i++) {
+            			    if(!boardListModel.contains(boards[i])){
+            			        boardListModel.addElement(boards[i]);
+            			    }
+            			}
+            		}
+        		}
+        	});
 	    }
 }
