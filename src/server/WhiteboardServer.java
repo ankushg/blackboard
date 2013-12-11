@@ -209,7 +209,9 @@ public class WhiteboardServer {
      */
     private synchronized void announceMessage(String message, String boardId) {
         synchronized (clientThreads) {
-            boards.get(boardId).add(message);
+        	synchronized (boards) {
+        		boards.get(boardId).add(message);
+            }
             for (WhiteboardThread w : clientThreads) {
                 if (w.client.getCurrentBoardId().equals(boardId)) {
                     w.sendMessage(message);
@@ -394,9 +396,6 @@ public class WhiteboardServer {
                     if (isClientOperation(input)) {
                         handleClientOperation(input, client);
                     } else {
-                        synchronized (boards) {
-                            boards.get(client.getCurrentBoardId()).add(input);
-                        }
                         announceMessage(input, client.getCurrentBoardId());
                     }
                 }

@@ -395,7 +395,7 @@ public class ClientCanvas extends JPanel{
 	        int yLength = Math.abs(y2-y1);
 
 	        // make changes to the points to force equal sides
-	        if (x2>x1&&y2>y1){// 4th quadrant
+	        if (x2>=x1&&y2>=y1){// 4th quadrant
 	        	if (xLength<=yLength){
 	        		yLength = xLength;
 	        	}
@@ -403,7 +403,7 @@ public class ClientCanvas extends JPanel{
 	        		xLength = yLength;
 	        	}
 	        }
-	        else if (x2<x1&&y2>y1){// 3rd quadrant
+	        else if (x2<x1&&y2>=y1){// 3rd quadrant
 	        	if (xLength<=yLength){
 	        		yLength = xLength;
 	        	}
@@ -422,7 +422,7 @@ public class ClientCanvas extends JPanel{
 	        		xLength = yLength;
 	        	}
 	        }
-	        else if (x2>x1&&y2<y1){// 1st quadrant
+	        else if (x2>=x1&&y2<y1){// 1st quadrant
 	        	if (xLength<=yLength){
 	        		yOrigin = y1-xLength;
 	        		yLength = xLength;

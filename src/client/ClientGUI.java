@@ -94,7 +94,7 @@ public class ClientGUI extends JFrame {
 				try {
 					for (String line = r.readLine(); line != null; line = r
 							.readLine()) {
-						System.out.println(line);
+						//System.out.println(line);
 						for (String drawingMessage : DrawingOperationProtocol.DRAWING_MESSAGE_LIST) {
 							
 							
