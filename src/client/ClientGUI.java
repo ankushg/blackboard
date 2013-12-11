@@ -94,8 +94,10 @@ public class ClientGUI extends JFrame {
 				try {
 					for (String line = r.readLine(); line != null; line = r
 							.readLine()) {
+
 						// log incoming messages
 						System.out.println("Received: "+line);
+
 						for (String drawingMessage : DrawingOperationProtocol.DRAWING_MESSAGE_LIST) {
 							
 							
