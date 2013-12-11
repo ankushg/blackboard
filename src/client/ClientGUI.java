@@ -34,12 +34,12 @@ public class ClientGUI extends JFrame {
 
 	public static final String[] SERVER_MESSAGE_LIST = { CURRENT_BOARDS, USER_QUIT, USER_JOINED, USERNAME,
 			USERNAME_CHANGED, BOARD_CHANGED, NEW_BOARD};
-	private final ClientCanvas canvas;
+	private final ClientEasel easel;
 	private final ClientInfoPanel infoPanel;
 
 	public ClientGUI() throws IOException {
-		canvas = new ClientCanvas(ClientCanvasPanel.DEFAULT_WIDTH,
-				ClientCanvasPanel.DEFAULT_HEIGHT, this);
+		easel = new ClientEasel(ClientCanvas.DEFAULT_WIDTH,
+				ClientCanvas.DEFAULT_HEIGHT, this);
 		infoPanel = new ClientInfoPanel(this);
 		this.setTitle("Powerboard 3000");
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -53,10 +53,10 @@ public class ClientGUI extends JFrame {
 		layout.setAutoCreateContainerGaps(true);
 
 		layout.setHorizontalGroup(layout.createSequentialGroup()
-				.addComponent(canvas).addComponent(infoPanel));
+				.addComponent(easel).addComponent(infoPanel));
 		layout.setVerticalGroup(layout
 				.createParallelGroup(GroupLayout.Alignment.LEADING)
-				.addComponent(canvas).addComponent(infoPanel));
+				.addComponent(easel).addComponent(infoPanel));
 		this.pack();
 		this.setVisible(true);
 
@@ -72,16 +72,17 @@ public class ClientGUI extends JFrame {
 							.readLine()) {
 						for (String drawingMessage : DrawingOperationProtocol.DRAWING_MESSAGE_LIST) {
 							// if we have a drawing message, send it only to the
-							// canvas
+							// easel
 							if (line.startsWith(drawingMessage)) {
-								canvas.receiveDrawingMessage(line);
+								easel.receiveDrawingMessage(line);
 							}
-							// otherwise, it may need to go to canvas or
+							// otherwise, it may need to go to easel or
 							// infoPanel
 						}
 
-						if (line.startsWith("joinedBoard")) {
-							canvas.receiveDrawingMessage(line);
+						if (line.startsWith(BOARD_CHANGED) || line.startsWith(USERNAME_CHANGED) 
+								|| line.startsWith(USERNAME)) {
+							easel.receiveServerMessage(line);
 						}
 						for (String serverMessage : SERVER_MESSAGE_LIST)
 						if (line.startsWith(serverMessage)) {

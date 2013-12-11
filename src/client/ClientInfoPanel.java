@@ -65,18 +65,18 @@ public class ClientInfoPanel extends JPanel{
 	                groupLayout.createParallelGroup()
 	                    .addComponent(serverInfo)
 	                    .addComponent(boardList)
+	                    .addComponent(newBoard)
 	                    .addComponent(userInfo)
 	                    .addComponent(userList)
-	                    .addComponent(newBoard)
                 		.addComponent(userID)
                 		.addComponent(changeName));
 	            groupLayout.setVerticalGroup(
 	                groupLayout.createSequentialGroup()
 	                    .addComponent(serverInfo)
 	                    .addComponent(boardList)
+	                    .addComponent(newBoard)
 	                    .addComponent(userInfo)
 	                    .addComponent(userList)
-	                    .addComponent(newBoard)
                 		.addComponent(userID)
                 		.addComponent(changeName));
 	        
@@ -157,11 +157,11 @@ public class ClientInfoPanel extends JPanel{
 	    		String names[] = message.split(" ");
 				userID.setText("Your username is: " + names[2]);
 	    	}
-    		if (message.startsWith(ClientGUI.NEW_BOARD)) {
+	    	if (message.startsWith(ClientGUI.NEW_BOARD)) {
     			String[] boards = message.split(" ");
     			boardListModel.addElement(boards[1]);
     		}
-    		if (message.startsWith(ClientGUI.CURRENT_BOARDS)) {
+	    	if (message.startsWith(ClientGUI.CURRENT_BOARDS)) {
     			String[] boards = message.split(" ");
     			for (int i = 1; i < boards.length; i++) {
     				boardListModel.addElement(boards[i]);

@@ -9,14 +9,14 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 
 /**
- * A class to represent a layer in a ClientCanvasPanel. This layer is given an ID number
+ * A class to represent a layer in a ClientCanvas. This layer is given an ID number
  * so that it can be removed once the server responds that this message has been drawn to 
  * the buffer. This class also generates the message for drawing itself to the server. 
  * 
  * 
  * 
  * The field drawingImage is provided to allow multiple drawings to be drawn on top of the buffer before
- * they are processed by the server. The attribute field should be drawn on by a ClientCanvasPanel
+ * they are processed by the server. The attribute field should be drawn on by a ClientCanvas
  * 
  * Rep Invariant:
  * If the drawing is a pencil/erase, then pointList should contain 2>= x,y points
