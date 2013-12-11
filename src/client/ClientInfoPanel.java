@@ -13,7 +13,11 @@ import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
+import javax.swing.JToggleButton;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 
 /**
  * A JPanel that manages all of the information about boards/users that are
@@ -40,7 +44,7 @@ public class ClientInfoPanel extends JPanel{
 		private final JLabel changeNameLabel;
 		private final JLabel newBoardLabel;
 		private final JLabel userInfo;
-		private String username;
+		private final ListSelectionModel listSelectionModel;
 		
 		/**
 		 * Make an InfoPanel.
@@ -63,7 +67,10 @@ public class ClientInfoPanel extends JPanel{
 	        userList = new JList<>(userListModel);
 	        boardList.setLayoutOrientation(JList.VERTICAL);
 	        userList.setLayoutOrientation(JList.VERTICAL);
-	        
+	        listSelectionModel = boardList.getSelectionModel();
+	        listSelectionModel.addListSelectionListener(
+	                                new SharedListSelectionHandler());
+
 	        JScrollPane boardListScroller = new JScrollPane(boardList);
 	        boardListScroller.setSize(this.getWidth(), 200);
 	        JScrollPane userListScroller = new JScrollPane(userList);
@@ -110,43 +117,61 @@ public class ClientInfoPanel extends JPanel{
             );
 	        
 	        setVisible(true);
-	        
+
 	        // This adds a new whiteboard to the server and serverlist
 			newBoard.addActionListener(new ActionListener(){
 	        	public void actionPerformed(ActionEvent e) {
-	        		String output = null;
-	        		String input = newBoard.getText();
-	        		if(input != ""){
-	        			output = "changeBoard " + input;
-	        		}
-	        		userListModel.clear();
-	        		newBoard.setText("");
-	        		clientGUI.sendMessage(output);
+	            	SwingUtilities.invokeLater(new Runnable() {
+	            		public void run() {
+	    	        		String output = null;
+	    	        		String input = newBoard.getText();
+	    	        		if(input != ""){
+	    	        			output = "changeBoard " + input;
+	    	        		}
+	    	        		userListModel.clear();
+	    	        		newBoard.setText("");
+	    	        		clientGUI.sendMessage(output);
+	            		}
+	            	});
 	        	}
 	        });
-
-			//This detects a single mouseclick on the board list and directs the user to that board
-			boardList.addMouseListener(new MouseAdapter() {
-			    public void mouseClicked(MouseEvent evt) {
-			    	String output = "";
-			        JList list = (JList)evt.getSource();
-                    int index = list.locationToIndex(evt.getPoint());
-                    output = (String) boardListModel.getElementAt(index);
-                    userListModel.clear();
-	        		clientGUI.sendMessage("changeBoard " + output);
-			    }
-			});
 
 			// This changes the name of the user
 			changeName.addActionListener(new ActionListener(){
 				public void actionPerformed(ActionEvent e) {
+	            	SwingUtilities.invokeLater(new Runnable() {
+	            		public void run() {
 					clientGUI.sendMessage("setUsername " + changeName.getText());
 					System.out.println("setUsername " + changeName.getText());
 					changeName.setText("");
 				}
-			});
-			
+            	});
+			}
+			});	
 	    }
+	    
+	    class SharedListSelectionHandler implements ListSelectionListener {
+	    	public void valueChanged(ListSelectionEvent e) { 
+	    		String output = "";
+	    		ListSelectionModel lsm = (ListSelectionModel)e.getSource();
+	    		int index = 0;
+	            int minIndex = lsm.getMinSelectionIndex();
+	            int maxIndex = lsm.getMaxSelectionIndex();
+	            for (int i = minIndex; i <= maxIndex; i++) {
+	                if (lsm.isSelectedIndex(i)) {
+	                    index = i;
+	                }
+
+	    		if (lsm.isSelectionEmpty()) {	
+	    		} 
+	    		else {
+	    			output = "changeBoard " + (String) boardListModel.getElementAt(index);
+	    			clientGUI.sendMessage(output);
+	    			}
+	    		}
+	    	}
+	    }
+
 	    
 	    /**
 	     * This method receives the non-drawing messages that the server sends to the
@@ -181,11 +206,15 @@ public class ClientInfoPanel extends JPanel{
 	    		String names[] = message.split(" ");
 				userID.setText("Your username is: " + names[2]);
 	    	}
-	    	if (message.startsWith(ClientGUI.NEW_BOARD)) {
+	    	if(message.startsWith(ClientGUI.NEW_BOARD)) {
     			String[] boards = message.split(" ");
     			boardListModel.addElement(boards[1]);
     		}
-	    	if (message.startsWith(ClientGUI.CURRENT_BOARDS)) {
+	    	if(message.startsWith(ClientGUI.BOARD_CHANGED)){
+    			String[] boards = message.split(" ");
+    			boardList.setSelectedValue(boards[2], true);
+	    	}
+	    	if(message.startsWith(ClientGUI.CURRENT_BOARDS)) {
     			String[] boards = message.split(" ");
     			for (int i = 1; i < boards.length; i++) {
     			    if(!boardListModel.contains(boards[i])){
