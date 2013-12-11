@@ -101,14 +101,9 @@ public class ClientInfoPanel extends JPanel{
 			    public void mouseClicked(MouseEvent evt) {
 			    	String output = "";
 			        JList list = (JList)evt.getSource();
-			        if (evt.getClickCount() == 1) {
-			            int index = list.locationToIndex(evt.getPoint());
-				        output = (String) boardListModel.getElementAt(index);
-			        } else if (evt.getClickCount() == 2) {   // Triple-click
-			            int index = list.locationToIndex(evt.getPoint());
-				        output = (String) boardListModel.getElementAt(index);
-			        }
-	        		userListModel.clear();
+                    int index = list.locationToIndex(evt.getPoint());
+                    output = (String) boardListModel.getElementAt(index);
+                    userListModel.clear();
 	        		clientGUI.sendMessage("changeBoard " + output);
 			    }
 			});
@@ -164,7 +159,9 @@ public class ClientInfoPanel extends JPanel{
 	    	if (message.startsWith(ClientGUI.CURRENT_BOARDS)) {
     			String[] boards = message.split(" ");
     			for (int i = 1; i < boards.length; i++) {
-    				boardListModel.addElement(boards[i]);
+    			    if(!boardListModel.contains(boards[i])){
+    			        boardListModel.addElement(boards[i]);
+    			    }
     			}
     		}
 	    }
