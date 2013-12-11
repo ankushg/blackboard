@@ -11,6 +11,7 @@ import javax.swing.GroupLayout;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
@@ -28,7 +29,6 @@ public class ClientInfoPanel extends JPanel{
 
 		private static final long serialVersionUID = 1L;
 		private final JLabel serverInfo;
-		private final JLabel currentBoard;
 		private final DefaultListModel<String> boardListModel;
 		private final DefaultListModel<String> userListModel;
 		private final JList<String> boardList;
@@ -37,6 +37,8 @@ public class ClientInfoPanel extends JPanel{
 		private final ClientGUI clientGUI;
 		private final JTextField changeName;
 		private final JLabel userID;
+		private final JLabel changeNameLabel;
+		private final JLabel newBoardLabel;
 		private final JLabel userInfo;
 		private String username;
 		
@@ -47,38 +49,65 @@ public class ClientInfoPanel extends JPanel{
 		 */
 	    public ClientInfoPanel(final ClientGUI clientGUI) throws IOException {
 	    	this.clientGUI = clientGUI;
-	    	username = "";
-	    	userID = new JLabel("Your username is: " + username);
+	    	userID = new JLabel("Your username is: ");
+	    	changeNameLabel = new JLabel("Change your username: ");
 	    	changeName = new JTextField(10);
-	    	serverInfo = new JLabel("Choose a whiteboard to draw on or add a new whiteboard.");
-	    	userInfo = new JLabel("Connected users in your current board");
-	    	currentBoard = new JLabel("");
+	    	serverInfo = new JLabel("Current Boards");
+	    	userInfo = new JLabel("Current Users in Your Board");
 	    	newBoard = new JTextField(10);
+	    	newBoardLabel = new JLabel("Create a new board: ");
+	    	
 	    	boardListModel = new DefaultListModel<>();
 	    	userListModel = new DefaultListModel<>();
 	    	boardList = new JList<>(boardListModel);
 	        userList = new JList<>(userListModel);
+	        boardList.setLayoutOrientation(JList.VERTICAL);
+	        userList.setLayoutOrientation(JList.VERTICAL);
 	        
-	        GroupLayout groupLayout = new GroupLayout(this);
-	        this.setLayout(groupLayout);
-	        groupLayout.setHorizontalGroup(
-	                groupLayout.createParallelGroup()
+	        JScrollPane boardListScroller = new JScrollPane(boardList);
+	        boardListScroller.setSize(this.getWidth(), 200);
+	        JScrollPane userListScroller = new JScrollPane(userList);
+	        userListScroller.setSize(this.getWidth(), 200);
+	        
+	        GroupLayout layout = new GroupLayout(this);
+	        this.setLayout(layout);
+	        layout.setAutoCreateGaps(true);
+			layout.setAutoCreateContainerGaps(true);
+			
+	        layout.setHorizontalGroup(
+	                layout.createParallelGroup(GroupLayout.Alignment.CENTER)
+	                	.addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+		                	.addComponent(userID)
+		                	.addGroup(layout.createSequentialGroup()
+		                			.addComponent(changeNameLabel)
+		                			.addComponent(changeName)
+		                			)
+		                	.addGroup(layout.createSequentialGroup()
+		                			.addComponent(newBoardLabel)
+		                			.addComponent(newBoard)
+		                			)
+		                )
 	                    .addComponent(serverInfo)
-	                    .addComponent(boardList)
-	                    .addComponent(newBoard)
+	                    .addComponent(boardListScroller)
 	                    .addComponent(userInfo)
-	                    .addComponent(userList)
-                		.addComponent(userID)
-                		.addComponent(changeName));
-	            groupLayout.setVerticalGroup(
-	                groupLayout.createSequentialGroup()
+	                    .addComponent(userListScroller)
+            );
+	        layout.setVerticalGroup(
+	                layout.createSequentialGroup()
+	                    .addComponent(userID)
+	                	.addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+	                    		.addComponent(changeNameLabel)
+	                    		.addComponent(changeName)
+	                    		)
+	                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+	                    		.addComponent(newBoardLabel)
+	                    		.addComponent(newBoard)
+	                    		)
 	                    .addComponent(serverInfo)
-	                    .addComponent(boardList)
-	                    .addComponent(newBoard)
+	                    .addComponent(boardListScroller)
 	                    .addComponent(userInfo)
-	                    .addComponent(userList)
-                		.addComponent(userID)
-                		.addComponent(changeName));
+	                    .addComponent(userListScroller)
+            );
 	        
 	        setVisible(true);
 	        

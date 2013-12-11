@@ -1,6 +1,6 @@
 package client;
 
-public class ClientCanvasPanelTest {
+public class ClientCanvasTest {
 	
 	/**
 	 * 
