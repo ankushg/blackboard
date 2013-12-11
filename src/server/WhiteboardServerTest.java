@@ -39,46 +39,23 @@ public class WhiteboardServerTest {
             Socket sock = TestUtil.connect();
             BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
             PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
-
-            assertEquals(true, TestUtil.nextNonEmptyLine(in).startsWith("joinedBoard default default"));
-            // This particular test ignores extraneous newlines; other tests may
-            // not.
-//            out.println("look");
-//
-//            assertEquals("- - - - - - -", TestUtil.nextNonEmptyLine(in));
-//            assertEquals("- - - - - - -", TestUtil.nextNonEmptyLine(in));
-//            assertEquals("- - - - - - -", TestUtil.nextNonEmptyLine(in));
-//            assertEquals("- - - - - - -", TestUtil.nextNonEmptyLine(in));
-//            assertEquals("- - - - - - -", TestUtil.nextNonEmptyLine(in));
-//            assertEquals("- - - - - - -", TestUtil.nextNonEmptyLine(in));
-//            assertEquals("- - - - - - -", TestUtil.nextNonEmptyLine(in));
-//
-//            out.println("dig 3 1");
-//
-//            assertEquals("- - - - - - -", TestUtil.nextNonEmptyLine(in));
-//            assertEquals("- - - 1 - - -", TestUtil.nextNonEmptyLine(in));
-//            assertEquals("- - - - - - -", TestUtil.nextNonEmptyLine(in));
-//            assertEquals("- - - - - - -", TestUtil.nextNonEmptyLine(in));
-//            assertEquals("- - - - - - -", TestUtil.nextNonEmptyLine(in));
-//            assertEquals("- - - - - - -", TestUtil.nextNonEmptyLine(in));
-//            assertEquals("- - - - - - -", TestUtil.nextNonEmptyLine(in));
-//
-//            out.println("dig 4 1");
-//
-//            assertEquals("BOOM!", TestUtil.nextNonEmptyLine(in));
-//
-//            out.println("look"); // Debug is true.
-//
-//            assertEquals("             ", TestUtil.nextNonEmptyLine(in));
-//            assertEquals("             ", TestUtil.nextNonEmptyLine(in));
-//            assertEquals("             ", TestUtil.nextNonEmptyLine(in));
-//            assertEquals("             ", TestUtil.nextNonEmptyLine(in));
-//            assertEquals("             ", TestUtil.nextNonEmptyLine(in));
-//            assertEquals("1 1          ", TestUtil.nextNonEmptyLine(in));
-//            assertEquals("- 1          ", TestUtil.nextNonEmptyLine(in));
-
+            assertEquals("username User0", TestUtil.nextNonEmptyLine(in));
+            assertEquals("joinedBoard default default", TestUtil.nextNonEmptyLine(in));
+            assertEquals("userJoined User0", TestUtil.nextNonEmptyLine(in));
+            out.println("getUsername");
+            assertEquals("username User0", TestUtil.nextNonEmptyLine(in));
+            out.println("listBoards");
+            assertEquals("currentBoards default", TestUtil.nextNonEmptyLine(in));
+            out.println("setUsername TestUsername");
+            assertEquals("usernameChanged User0 TestUsername", TestUtil.nextNonEmptyLine(in));
+            assertEquals("userQuit User0", TestUtil.nextNonEmptyLine(in));
+            assertEquals("userJoined TestUsername", TestUtil.nextNonEmptyLine(in));
+            out.println("changeBoard testBoard"); // Debug is true.
+            assertEquals("userQuit TestUsername", TestUtil.nextNonEmptyLine(in));
+            assertEquals("newBoard testBoard", TestUtil.nextNonEmptyLine(in));
+            assertEquals("joinedBoard default testBoard", TestUtil.nextNonEmptyLine(in));
+            assertEquals("userJoined TestUsername", TestUtil.nextNonEmptyLine(in));
             out.println("exit");
-
             sock.close();
         } catch (SocketTimeoutException e) {
             throw new RuntimeException(e);
