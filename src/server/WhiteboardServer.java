@@ -328,7 +328,7 @@ public class WhiteboardServer {
                     globalMessage("newBoard " + newBoard);
                 }
             }
-            thread.sendMessage(String.format("joinedBoard %s %s", oldBoard, newBoard));
+            thread.sendMessage(String.format("boardChanged %s %s", oldBoard, newBoard));
             thread.sendMessages(boards.get(newBoard));
             announceMessage("userJoined " + client.getUsername(), newBoard);
         }
