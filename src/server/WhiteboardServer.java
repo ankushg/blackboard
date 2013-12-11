@@ -365,6 +365,7 @@ public class WhiteboardServer {
                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                     handleClientOperation("getUsername", client);
+                    handleClientOperation("listBoards", client);
                     handleClientOperation("l", client);
                     joinBoard(client, "default");
 

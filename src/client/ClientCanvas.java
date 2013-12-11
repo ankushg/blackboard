@@ -30,14 +30,12 @@ import model.DrawingOperationProtocol;
  * Concurrency Argument:
  * The fields drawingCounter, drawingBuffer, recentDrawings, and X&Y variables are only ever
  * 		accessed/modified after synchronizing on the class, making them thread safe
- * 
  * The order of events of a DrawingLayer's creation occur within the DrawingController, which
  * 		will always have a predictable progression of events. Since there is only one mouse per client, 
  * 		none of the DrawingController events will ever be called from multiple threads, 
  * 		eliminating the possibility of concurrency issues
  * 
  * 
- * TODO: Finish Concurrency Argument
  * TODO: Write tests for message creation
  * TODO: Write tests for message receiving
  * TODO: Document methods better
@@ -375,9 +373,6 @@ public class ClientCanvas extends JPanel{
 	    	if (drawingIndex != -1){
 	    		recentDrawings.remove(drawingIndex);
 	    	}
-	    	
-	    	// for debugging
-	    	System.out.println("Removed drawing "+drawingID);
 	    }
 
 	    
