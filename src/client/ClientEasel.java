@@ -67,12 +67,14 @@ public class ClientEasel extends JPanel{
     
     public final static String[] SHAPE_OPTIONS = {SQUARE, RECTANGLE, CIRCLE, OVAL};
     public final static String[] WIDTH_OPTIONS = {"5px", "10px", "20px"};
+    
     public final static String PENCIL_BUTTON = "pencilModeButton";
     public final static String ERASE_BUTTON = "eraseModeButton";
     public final static String LINE_BUTTON = "lineModeButton";
     public final static String SHAPE_BUTTON = "shapeModeButton";
     public final static String ERASE_ALL_BUTTON = "eraseAllButton";
     public final static String SHAPE_FILLED_BUTTON = "shapeFilledButton";
+    
     public final static String SHAPE_SELECTION_BOX = "shapeSelectionBox";
     public final static String WIDTH_SELECTION_BOX = "widthSelectionBox";
     public final static String CURRENT_COLOR_LABEL = "currentColorLabel";

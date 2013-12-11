@@ -13,15 +13,20 @@ import java.util.ArrayList;
  * so that it can be removed once the server responds that this message has been drawn to 
  * the buffer. This class also generates the message for drawing itself to the server. 
  * 
- * 
- * 
  * The field drawingImage is provided to allow multiple drawings to be drawn on top of the buffer before
  * they are processed by the server. The attribute field should be drawn on by a ClientCanvas
  * 
+ * The fields shapeType/shapeFilled must be provided when instantiating the class, but
+ * will be appropriately ignored after creation if the drawingType is not ClientEasel.SHAPE_BUTTON
+ * 
  * Rep Invariant:
+ * The drawingType should be one of the static Strings ClientEasel.XXXXX_BUTTON
  * If the drawing is a pencil/erase, then pointList should contain 2>= x,y points
  * If the drawing is a shape/line, then pointList should only contain two points
+ * 		***If the shape is a square/circle, the points do not need to be pre-scaled
+ * If the drawing is eraseAll, then the pointList may be empty
  * All points in the drawing should be added before createMessage is called
+ * drawingImage should be drawn on and accessed in a thread-safe manner 
  * 
  * Concurrency Argument:
  * All fields in this class (except drawingImage) that show risk of concurrency 
