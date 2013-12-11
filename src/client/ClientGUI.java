@@ -94,7 +94,8 @@ public class ClientGUI extends JFrame {
 				try {
 					for (String line = r.readLine(); line != null; line = r
 							.readLine()) {
-						//System.out.println(line);
+						// log incoming messages
+						System.out.println("Received: "+line);
 						for (String drawingMessage : DrawingOperationProtocol.DRAWING_MESSAGE_LIST) {
 							
 							
@@ -128,8 +129,6 @@ public class ClientGUI extends JFrame {
 		});
 		clientThread.start();
 
-		// ping the server for the current boards
-		getBoardList();
 	}
 
 	/**
@@ -242,6 +241,8 @@ public class ClientGUI extends JFrame {
 	 *            the String to send to the server
 	 */
 	public synchronized void sendMessage(String output) {
+		// log Outgoing messages
+		System.out.println("Sent: "+output);
 		w.println(output);
 	}
 	

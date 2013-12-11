@@ -190,14 +190,19 @@ public class ClientInfoPanel extends JPanel{
 	    /**
 	     * This method takes a server message and parses it into different
 	     * categories. The UI information is updated based on the message.
+	     * 
 	     * @param message
 	     */
 	    protected synchronized void parseUsers(String message){
 	    	if(message.startsWith(ClientGUI.USER_JOINED)){
+	    		synchronized(userListModel){
 	    		userListModel.addElement(message.substring(11));
+	    		}
 	    	}
 	    	if(message.startsWith(ClientGUI.USER_QUIT)){
+	    		synchronized(userListModel){
 	    		userListModel.removeElement(message.substring(9));
+	    		}
 	    	}
 	    	if(message.startsWith(ClientGUI.USERNAME)){
 	    		userID.setText("Your username is: " + message.substring(9));

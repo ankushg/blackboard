@@ -30,6 +30,7 @@ public class WhiteboardServer {
      * The default board that the user connects to upon joining the server
      */
     private static String DEFAULT_BOARD = "default";
+    private static String NO_BOARD = "";
 
     private ServerSocket serverSocket;
 
@@ -147,7 +148,7 @@ public class WhiteboardServer {
         while (true) {
             // block until a client connects
             final Socket socket = serverSocket.accept();
-            final Client newClient = new Client(DEFAULT_BOARD);
+            final Client newClient = new Client(NO_BOARD);
             WhiteboardThread thread = new WhiteboardThread(socket, newClient);
             clientThreads.add(thread);
             // handle the client
@@ -259,7 +260,6 @@ public class WhiteboardServer {
         case "changeBoard":
             String oldBoard = client.getCurrentBoardId();
             String newBoard = args[1];
-            announceMessage("userQuit " + client.getUsername(), oldBoard);
             joinBoard(client, newBoard);
             break;
         case "setUsername":
@@ -317,22 +317,26 @@ public class WhiteboardServer {
         synchronized (client) {
             WhiteboardThread thread = getThread(client);
             assert thread != null;
-
+            
             String oldBoard = client.getCurrentBoardId();
-
-            client.setCurrentBoardId(newBoard);
-
-            // create board if it doesn't exist. synchronized on boards in case
-            // multiple users join the same board at the same time
-            synchronized (boards) {
-                if (!boards.containsKey(newBoard)) {
-                    boards.put(newBoard, new ArrayList<String>());
-                    globalMessage("newBoard " + newBoard);
-                }
+            
+            if (!oldBoard.equals(newBoard)){
+	
+	            // create board if it doesn't exist. synchronized on boards in case
+	            // multiple users join the same board at the same time
+	            synchronized (boards) {
+	                if (!boards.containsKey(newBoard)) {
+	                    boards.put(newBoard, new ArrayList<String>());
+	                    globalMessage("newBoard " + newBoard);
+	                }
+	            }
+	            announceMessage("userQuit " + client.getUsername(), oldBoard);
+	            announceMessage("userJoined " + client.getUsername(), newBoard);
+	            thread.sendMessage(String.format("boardChanged %s %s", oldBoard, newBoard));
+	            client.setCurrentBoardId(newBoard);
+	            thread.sendMessages(boards.get(newBoard));
+	            
             }
-            thread.sendMessage(String.format("boardChanged %s %s", oldBoard, newBoard));
-            thread.sendMessages(boards.get(newBoard));
-            announceMessage("userJoined " + client.getUsername(), newBoard);
         }
     }
 
@@ -368,8 +372,7 @@ public class WhiteboardServer {
                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                     handleClientOperation("getUsername", client);
                     handleClientOperation("listBoards", client);
-                    handleClientOperation("l", client);
-                    joinBoard(client, "default");
+                    joinBoard(client, DEFAULT_BOARD);
 
                     try {
                         for (String line = in.readLine(); line != null; line = in.readLine()) {
