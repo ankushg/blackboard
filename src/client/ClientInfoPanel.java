@@ -118,7 +118,7 @@ public class ClientInfoPanel extends JPanel{
 	        
 	        setVisible(true);
 
-	        // This adds a new whiteboard to the server and serverlist
+	        // This adds a new whiteboard to the server and boardList
 			newBoard.addActionListener(new ActionListener(){
 	        	public void actionPerformed(ActionEvent e) {
 	            	SwingUtilities.invokeLater(new Runnable() {
@@ -150,7 +150,10 @@ public class ClientInfoPanel extends JPanel{
 			});	
 	    }
 	    
+	    // This class listens to any selection changes in boardList
 	    class SharedListSelectionHandler implements ListSelectionListener {
+	    	// This takes the String of the newly selected board and sends a message to the server to
+	    	// change the canvas to the new board.
 	    	public void valueChanged(ListSelectionEvent e) { 
 	    		String output = "";
 	    		ListSelectionModel lsm = (ListSelectionModel)e.getSource();
@@ -166,6 +169,7 @@ public class ClientInfoPanel extends JPanel{
 	    		} 
 	    		else {
 	    			output = "changeBoard " + (String) boardListModel.getElementAt(index);
+	        		userListModel.clear();
 	    			clientGUI.sendMessage(output);
 	    			}
 	    		}
@@ -212,6 +216,7 @@ public class ClientInfoPanel extends JPanel{
     		}
 	    	if(message.startsWith(ClientGUI.BOARD_CHANGED)){
     			String[] boards = message.split(" ");
+        		userListModel.clear();
     			boardList.setSelectedValue(boards[2], true);
 	    	}
 	    	if(message.startsWith(ClientGUI.CURRENT_BOARDS)) {
