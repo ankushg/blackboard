@@ -40,6 +40,11 @@ public class ClientInfoPanel extends JPanel{
 		private final JLabel userInfo;
 		private String username;
 		
+		/**
+		 * Make an InfoPanel.
+		 * @param clientGUI
+		 * @throws IOException
+		 */
 	    public ClientInfoPanel(final ClientGUI clientGUI) throws IOException {
 	    	this.clientGUI = clientGUI;
 	    	username = "";
@@ -77,6 +82,7 @@ public class ClientInfoPanel extends JPanel{
 	        
 	        setVisible(true);
 	        
+	        // This adds a new whiteboard to the server and serverlist
 			newBoard.addActionListener(new ActionListener(){
 	        	public void actionPerformed(ActionEvent e) {
 	        		String output = null;
@@ -84,21 +90,21 @@ public class ClientInfoPanel extends JPanel{
 	        		if(input != ""){
 	        			output = "changeBoard " + input;
 	        		}
-
 	        		userListModel.clear();
 	        		newBoard.setText("");
 	        		clientGUI.sendMessage(output);
 	        	}
 	        });
 
+			//This detects a single mouseclick on the board list and directs the user to that board
 			boardList.addMouseListener(new MouseAdapter() {
 			    public void mouseClicked(MouseEvent evt) {
 			    	String output = "";
 			        JList list = (JList)evt.getSource();
-			        if (evt.getClickCount() == 2) {
+			        if (evt.getClickCount() == 1) {
 			            int index = list.locationToIndex(evt.getPoint());
 				        output = (String) boardListModel.getElementAt(index);
-			        } else if (evt.getClickCount() == 3) {   // Triple-click
+			        } else if (evt.getClickCount() == 2) {   // Triple-click
 			            int index = list.locationToIndex(evt.getPoint());
 				        output = (String) boardListModel.getElementAt(index);
 			        }
@@ -107,6 +113,7 @@ public class ClientInfoPanel extends JPanel{
 			    }
 			});
 
+			// This changes the name of the user
 			changeName.addActionListener(new ActionListener(){
 				public void actionPerformed(ActionEvent e) {
 					clientGUI.sendMessage("setUsername " + changeName.getText());
@@ -115,10 +122,13 @@ public class ClientInfoPanel extends JPanel{
 				}
 			});
 			
-			
-//			userListModel.addElement()
 	    }
 	    
+	    /**
+	     * This method receives the non-drawing messages that the server sends to the
+	     * client and sends it to the parseUsers method.
+	     * @param message
+	     */
 	    protected synchronized void receiveServerMessage(String message){
 	    	final String serverMessage = message;
 	    	SwingUtilities.invokeLater(new Runnable() {
@@ -128,29 +138,25 @@ public class ClientInfoPanel extends JPanel{
 	    		}
 	    	});
 	    }
-
+	    /**
+	     * This method takes a server message and parses it into different
+	     * categories. The UI information is updated based on the message.
+	     * @param message
+	     */
 	    protected synchronized void parseUsers(String message){
 	    	if(message.startsWith(ClientGUI.USER_JOINED)){
 	    		userListModel.addElement(message.substring(11));
-	    		System.out.println(message);
 	    	}
 	    	if(message.startsWith(ClientGUI.USER_QUIT)){
 	    		userListModel.removeElement(message.substring(9));
-	    		System.out.println(message);
 	    	}
 	    	if(message.startsWith(ClientGUI.USERNAME)){
 	    		userID.setText("Your username is: " + message.substring(9));
-	    		System.out.println(message);
 	    	}
 	    	if(message.startsWith(ClientGUI.USERNAME_CHANGED)){
 	    		String names[] = message.split(" ");
 				userID.setText("Your username is: " + names[2]);
-	    		System.out.println(message);
 	    	}
-	    
-    		if (message.startsWith(ClientGUI.BOARD_CHANGED)) {
-    			// TODO: clear the actual drawing
-    		}
     		if (message.startsWith(ClientGUI.NEW_BOARD)) {
     			String[] boards = message.split(" ");
     			boardListModel.addElement(boards[1]);
@@ -161,14 +167,5 @@ public class ClientInfoPanel extends JPanel{
     				boardListModel.addElement(boards[i]);
     			}
     		}
-	    }
-	    
-	    public boolean isNewBoard(String board){
-	    	for(int i=0; i<boardListModel.getSize(); i++){
-	    		if(board.equals(boardListModel.getElementAt(i))){
-	    			return false;
-	    		}
-	    	}
-	    	return true;
 	    }
 }
