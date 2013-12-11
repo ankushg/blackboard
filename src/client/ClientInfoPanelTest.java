@@ -3,6 +3,7 @@ package client;
 public class ClientInfoPanelTest {
 	
 	/**
+	 * @author kevinwen
 	 * GUI Testing:
 	 * boardList testing:
 	 * I made sure that, in a new server, the boardList just displays the default whiteboard.

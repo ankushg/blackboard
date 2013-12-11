@@ -23,11 +23,14 @@ import javax.swing.event.ListSelectionListener;
  * A JPanel that manages all of the information about boards/users that are
  * retrieved from the server
  * 
+ * Concurrency Argument:
+ * All changes to the GUI components occur within the EDT, and obtaining information about a ClientInfoPanel
+ * field requires synchronizing on the panel.
+ * Messaging receiving from the server also occurs on the EDT, preventing any concurrency issues that may arise from
+ * receiving multiple messages quickly.
+
  * @author kevinwen
  *
- * TODO: Fix changing whiteboards (the display of all current whiteboards, joining new whiteboards,
- * 					joining existing whiteboards)
- * TODO: Fix the way the users are displayed
  */
 public class ClientInfoPanel extends JPanel{
 
