@@ -28,9 +28,13 @@ import model.DrawingOperationProtocol;
  * to allow collaboration on a whiteboard among multiple users
  * 
  * Concurrency Argument:
- * The fields drawingCounter, drawingBuffer, and recentDrawings are only ever
- * 		accessed/modified after synchronizing on the class
+ * The fields drawingCounter, drawingBuffer, recentDrawings, and X&Y variables are only ever
+ * 		accessed/modified after synchronizing on the class, making them thread safe
  * 
+ * The order of events of a DrawingLayer's creation occur within the DrawingController, which
+ * 		will always have a predictable progression of events. Since there is only one mouse per client, 
+ * 		none of the DrawingController events will ever be called from multiple threads, 
+ * 		eliminating the possibility of concurrency issues
  * 
  * 
  * TODO: Finish Concurrency Argument
@@ -168,7 +172,7 @@ public class ClientCanvas extends JPanel{
 	     * 
 	     * Uses information from the currently selected color and width in the GUI
 	     */
-	    private void drawTempSegment(int x1, int y1, int x2, int y2) {
+	    private synchronized void drawTempSegment(int x1, int y1, int x2, int y2) {
 	        X1=x1;
 	        X2=x2;
 	        Y1=y1;
@@ -458,7 +462,7 @@ public class ClientCanvas extends JPanel{
 	        /*
 	         * When mouse button is pressed down, start drawing.
 	         */
-	        public void mousePressed(MouseEvent e) {
+	        public synchronized void mousePressed(MouseEvent e) {
 	            lastX = e.getX();
 	            lastY = e.getY();
 	            currentDrawing = createNewDrawing();
@@ -469,7 +473,7 @@ public class ClientCanvas extends JPanel{
 	         * When mouse moves while a button is pressed down,
 	         * draw depending on what tool is selected.
 	         */
-	        public void mouseDragged(MouseEvent e) {
+	        public synchronized void mouseDragged(MouseEvent e) {
 	        	// Take the min to prevent from drawing off of the screen
 	            int x = Math.max(Math.min(e.getX(),getWidth()),0);
 	            int y = Math.max(Math.min(e.getY(),getHeight()),0);
@@ -499,7 +503,7 @@ public class ClientCanvas extends JPanel{
 	            }
 	        }
 	        
-	        public void mouseReleased(MouseEvent e) { 
+	        public synchronized void mouseReleased(MouseEvent e) { 
 	        	// Take the min to prevent from drawing off of the screen
 	        	int x = Math.max(Math.min(e.getX(),getWidth()),0);
 	            int y = Math.max(Math.min(e.getY(),getHeight()),0);

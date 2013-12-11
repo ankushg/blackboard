@@ -1,31 +1,18 @@
 package client;
 
 import java.awt.BasicStroke;
-import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Container;
 import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.Point;
-import java.awt.Polygon;
-import java.awt.Rectangle;
 import java.awt.Stroke;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
-import java.util.ArrayList;
-import java.util.HashMap;
 
 import javax.swing.GroupLayout;
 import javax.swing.JButton;
 import javax.swing.JColorChooser;
 import javax.swing.JComboBox;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -39,16 +26,23 @@ import javax.swing.SwingUtilities;
  * user to erase as well. The canvas communicates with a WhiteboardServer
  * to allow collaboration on a whiteboard among multiple users
  * 
+ * Concurrency Argument:
+ * All changes to the easel components occur within the EDT, and obtaining information about an easel
+ * 		field requires synchronizing on the easel
+ * Messaging receiving also occurs on the EDT, preventing any concurrency issues that may arise from
+ * 		receiving multiple messages quickly
+ * 
  * 
  * TODO: Change interface to use icons instead of text
  * TODO: Make interface more user friendly
- * TODO: Get the userID info from the ClientGUI after establishing a connection
  * 
  * 
  */
 public class ClientEasel extends JPanel{
-    
-    private final ClientCanvas canvas;
+
+	private static final long serialVersionUID = 1L;
+
+	private final ClientCanvas canvas;
     
     private String username;
     
@@ -86,7 +80,8 @@ public class ClientEasel extends JPanel{
     
     
     /**
-     * Make a canvas.
+     * Make an easel to support a canvas.
+     * 
      * @param width width in pixels
      * @param height height in pixels
      */
@@ -180,15 +175,21 @@ public class ClientEasel extends JPanel{
         lineModeButton.addActionListener(toggleButton);
         shapeModeButton.addActionListener(toggleButton);
         
-        // set up a listener to the color selector
+        // set up a listener to the color selector to show the color dialog
         currentColorLabel.addMouseListener(new MouseAdapter() {
-        	public void mouseReleased(MouseEvent ae) {
+        	public void mouseClicked(MouseEvent ae) {
         		Color newColor = JColorChooser.showDialog(ClientEasel.this,
         												"Choose Drawing Color",
         												getColor());
         		
         		if (!(newColor==null)) {
-        			currentColorLabel.setBackground(newColor);
+        			final Color color = newColor;
+        			SwingUtilities.invokeLater(new Runnable() {
+        				public void run() {
+        					currentColorLabel.setBackground(color);
+        				}
+        			});
+        			
         		}
         	}
         });

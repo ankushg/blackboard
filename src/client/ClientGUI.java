@@ -1,6 +1,10 @@
 package client;
 
 import java.awt.Container;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -9,6 +13,8 @@ import java.net.Socket;
 
 import javax.swing.Box;
 import javax.swing.GroupLayout;
+import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -18,9 +24,26 @@ import javax.swing.SwingUtilities;
 
 import model.DrawingOperationProtocol;
 
-
+/**
+ * A GUI to support drawing by multiple users on a shared whiteboard. This holds 
+ * both a ClientEasel and a ClientInfoPanel, and maintains the connection between
+ * the client and the WhiteboardServer. The ClientGUI handles all of the message 
+ * passing between the server and its two major sub-components.
+ *
+ * Concurrency Argument:
+ * The only method for the ClientGUI to run into concurrency issues is due to the fact that
+ * 		it spawns a separate thread to listen to messages from the WhiteboardServer. This
+ * 		thread is made safe because ClientGUI never actually handles the messages, they are 
+ * 		passed to the Easel/InfoPanel, who handle the messages through the EDT. To avoid issues
+ * 		while sending messages, sending a message requires synchronizing on the GUI itself.
+ * 
+ * @author jlmart88
+ *
+ */
 public class ClientGUI extends JFrame {
 
+	private static final long serialVersionUID = 1L;
+	
 	private PrintWriter w;
 	private BufferedReader r;
 	private Socket socket;
@@ -58,8 +81,9 @@ public class ClientGUI extends JFrame {
 				.createParallelGroup(GroupLayout.Alignment.LEADING)
 				.addComponent(easel).addComponent(infoPanel));
 		this.pack();
+		this.setLocationRelativeTo(null);
 		this.setVisible(true);
-
+		
 		showLoginScreen();
 
 		// set up a thread to listen for and handle incoming server messages
@@ -108,40 +132,95 @@ public class ClientGUI extends JFrame {
 	/**
 	 * Prompts the user with a dialog for server info, then initializes a socket
 	 * connection with the server
-	 * 
-	 * @throws IOException
 	 */
-	private void showLoginScreen() throws IOException {
+	private void showLoginScreen() {
 		// create the text fields
-		JTextField IPAddress = new JTextField(5);
+		final JTextField IPAddress = new JTextField(10);
 		IPAddress.setText("localhost");
-		JTextField portNum = new JTextField(5);
+		final JTextField portNum = new JTextField(10);
 		portNum.setText("4500");
+		JLabel IPLabel = new JLabel("Server IP Address:");
+		JLabel portLabel = new JLabel("Server Port #: ");
+		JButton login = new JButton("Login");
+		JButton cancel = new JButton("Cancel");
+		
 
-		JPanel myPanel = new JPanel();
-		myPanel.add(new JLabel("Server IP Address:"));
-		myPanel.add(IPAddress);
-		myPanel.add(Box.createHorizontalStrut(15)); // a spacer
-		myPanel.add(new JLabel("Server Port #:"));
-		myPanel.add(portNum);
+		final JPanel loginPanel = new JPanel();
+		
+		GroupLayout layout = new GroupLayout(loginPanel);
+		loginPanel.setLayout(layout);
+		layout.setAutoCreateGaps(true);
+		layout.setAutoCreateContainerGaps(true);
+		
+		layout.setHorizontalGroup(
+				   layout.createParallelGroup(GroupLayout.Alignment.CENTER)
+				      .addGroup(layout.createSequentialGroup()
+				    		  .addComponent(IPLabel)
+				    		  .addComponent(IPAddress)
+				    		  )
+				      .addGroup(layout.createSequentialGroup()
+				    		  .addComponent(portLabel)
+				    		  .addComponent(portNum)
+				    		  )
+				      .addGroup(layout.createSequentialGroup()
+				    		  .addComponent(login)
+				    		  .addComponent(cancel)
+				    		  )
+				);
+				layout.setVerticalGroup(
+				   layout.createSequentialGroup()
+				      .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+				    		  .addComponent(IPLabel)
+				    		  .addComponent(IPAddress)
+				    		  )
+				      .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+				    		  .addComponent(portLabel)
+				    		  .addComponent(portNum)
+				    		  )
+				      .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+				    		  .addComponent(login)
+				    		  .addComponent(cancel)
+				    		  )
+				);
 
-		int result = JOptionPane.showConfirmDialog(null, myPanel,
-				"Please enter the server information:",
-				JOptionPane.OK_CANCEL_OPTION);
-		if (result == JOptionPane.OK_OPTION) {
-			try {
-				socket = new Socket(IPAddress.getText(),
-						Integer.parseInt(portNum.getText()));
-				w = new PrintWriter(socket.getOutputStream(), true);
-				r = new BufferedReader(new InputStreamReader(
-						socket.getInputStream()));
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
-		}
-		if (result == JOptionPane.CANCEL_OPTION) {
-			this.dispose();
-		}
+		final JDialog dialog = new  JDialog(this, "Login to Powerboard 3000", true);
+		dialog.setContentPane(loginPanel);
+		dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+		
+		login.addActionListener(
+			    new ActionListener() {
+			        public void actionPerformed(ActionEvent e) {
+			        	boolean loginSuccessful = true;
+			        	try {
+							socket = new Socket(IPAddress.getText(),
+									Integer.parseInt(portNum.getText()));
+							w = new PrintWriter(socket.getOutputStream(), true);
+							r = new BufferedReader(new InputStreamReader(
+									socket.getInputStream()));
+						} catch (IOException e1) {
+							loginSuccessful = false;
+							e1.printStackTrace();
+							JOptionPane.showMessageDialog(dialog,
+								    "Login failed, please try again.", 
+								    "Error",
+								    JOptionPane.ERROR_MESSAGE);
+						} finally {
+							if (loginSuccessful) dialog.setVisible(false);
+						}
+			        }
+			    });
+		
+		cancel.addActionListener(new ActionListener() {
+	        public void actionPerformed(ActionEvent e) {
+	        	System.exit(0);
+	        }
+	    });
+		
+		dialog.pack();
+		dialog.setResizable(false);
+		dialog.setLocationRelativeTo(this);
+		
+		dialog.setVisible(true);
 	}
 
 	/**
@@ -162,7 +241,10 @@ public class ClientGUI extends JFrame {
 	public synchronized void sendMessage(String output) {
 		w.println(output);
 	}
-
+	
+	/**
+	 * Run an instance of the ClientGUI
+	 */
 	public static void main(final String[] args) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
