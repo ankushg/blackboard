@@ -36,9 +36,6 @@ import model.DrawingOperationProtocol;
  * 		eliminating the possibility of concurrency issues
  * 
  * 
- * TODO: Write tests for message creation
- * TODO: Write tests for message receiving
- * TODO: Document methods better
  * 
  * @author jlmart88
  *
