@@ -130,7 +130,6 @@ public class ClientInfoPanel extends JPanel{
 	    	        		if(input != ""){
 	    	        			output = "changeBoard " + input;
 	    	        		}
-	    	        		userListModel.clear();
 	    	        		newBoard.setText("");
 	    	        		clientGUI.sendMessage(output);
 	            		}
