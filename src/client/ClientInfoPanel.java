@@ -174,7 +174,6 @@ public class ClientInfoPanel extends JPanel{
 	    				public void run(){
 	    					String output = "";
 	    					output = "changeBoard " + (String) boardListModel.getElementAt(outIndex);
-	    	        		userListModel.clear();
 	    	    			clientGUI.sendMessage(output);
 	    				}
 	    			});
