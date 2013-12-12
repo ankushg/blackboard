@@ -171,7 +171,7 @@ public class ClientInfoPanel extends JPanel{
 	    		if (!(lsm.isSelectionEmpty())) {
 	    			SwingUtilities.invokeLater(new Runnable(){
 	    				public void run(){
-	    					String output = "";
+	    					String output;
 	    					output = "changeBoard " + (String) boardListModel.getElementAt(outIndex);
 	    	    			clientGUI.sendMessage(output);
 	    				}
@@ -231,8 +231,8 @@ public class ClientInfoPanel extends JPanel{
         	    	}
         	    	if(message.startsWith(ClientGUI.CURRENT_BOARDS)) {
             			String[] boards = message.split(" ");
-            			for (int i = 1; i < boards.length; i++) {
-            			    if(!boardListModel.contains(boards[i])){
+            			for (int i = 2; i < boards.length; i++) {
+            			    if(!boardListModel.contains(boards[i]) && boards[i]!=" "){
             			        boardListModel.addElement(boards[i]);
             			    }
             			}
