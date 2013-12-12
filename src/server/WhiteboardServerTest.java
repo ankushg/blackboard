@@ -16,22 +16,23 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Things to test:
- * first join on server
- * 
- * 
- * @author ankush
- *
+ * Tests for WhiteboardServer
  */
 public class WhiteboardServerTest {
 
-    @Before
-    public void setUp() throws Exception {
-        TestUtil.startServer(true);
-    }
-
+    /**
+     * Tests all user input functions to the server over a socket (on-connect
+     * messages, getUsername, listBoards, setUsername, changeBoard, exit)
+     * 
+     * Tests that the user receives the correct messages in the correct order.
+     * 
+     * @throws IOException
+     * @throws InterruptedException
+     */
     @Test(timeout = 10000)
-    public void publishedTest() throws IOException, InterruptedException {
+    public void testFunctions() throws IOException, InterruptedException {
+        TestUtil.startServer(true);
+
         // Avoid race where we try to connect to server too early
         Thread.sleep(100);
 
@@ -39,32 +40,35 @@ public class WhiteboardServerTest {
             Socket sock = TestUtil.connect();
             BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
             PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
+
             assertEquals("username User0", TestUtil.nextNonEmptyLine(in));
-            assertEquals("joinedBoard default default", TestUtil.nextNonEmptyLine(in));
+            assertEquals("currentBoards ", TestUtil.nextNonEmptyLine(in));
+            assertEquals("newBoard default", TestUtil.nextNonEmptyLine(in));
+            assertEquals("userQuit User0", TestUtil.nextNonEmptyLine(in));
+            assertEquals("boardChanged  default", TestUtil.nextNonEmptyLine(in));
             assertEquals("userJoined User0", TestUtil.nextNonEmptyLine(in));
+
             out.println("getUsername");
             assertEquals("username User0", TestUtil.nextNonEmptyLine(in));
+
             out.println("listBoards");
-            assertEquals("currentBoards default", TestUtil.nextNonEmptyLine(in));
+            assertEquals("currentBoards  default", TestUtil.nextNonEmptyLine(in));
+
             out.println("setUsername TestUsername");
             assertEquals("usernameChanged User0 TestUsername", TestUtil.nextNonEmptyLine(in));
             assertEquals("userQuit User0", TestUtil.nextNonEmptyLine(in));
             assertEquals("userJoined TestUsername", TestUtil.nextNonEmptyLine(in));
+
             out.println("changeBoard testBoard"); // Debug is true.
-            assertEquals("userQuit TestUsername", TestUtil.nextNonEmptyLine(in));
             assertEquals("newBoard testBoard", TestUtil.nextNonEmptyLine(in));
-            assertEquals("joinedBoard default testBoard", TestUtil.nextNonEmptyLine(in));
+            assertEquals("userQuit TestUsername", TestUtil.nextNonEmptyLine(in));
+            assertEquals("boardChanged default testBoard", TestUtil.nextNonEmptyLine(in));
             assertEquals("userJoined TestUsername", TestUtil.nextNonEmptyLine(in));
+
             out.println("exit");
             sock.close();
         } catch (SocketTimeoutException e) {
             throw new RuntimeException(e);
         }
     }
-    
-    @After
-    public void tearDown() throws Exception {
-        TestUtil.startServer(true);
-    }
-
 }
