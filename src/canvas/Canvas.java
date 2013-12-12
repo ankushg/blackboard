@@ -23,6 +23,7 @@ import javax.swing.SwingUtilities;
  * Canvas represents a drawing surface that allows the user to draw
  * on it freehand, with the mouse.
  * 
+ * @deprecated: Code was provided by 6.005 staff, but is no longer needed.
  */
 public class Canvas extends JPanel {
     // image where the user's drawing is stored

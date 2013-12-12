@@ -1,5 +1,7 @@
 package client;
 
+import org.junit.Test;
+
 /**
  * This class contains the testing strategy used to ensure that ClientEasel works correctly
  * @author jlmart88
@@ -22,4 +24,8 @@ public class ClientEaselTest {
 	 * - The ClientCanvas object is passed all other messages received from the server
 	 * 
 	 */
+    @Test
+    public void clientEaselTest() {
+        assert true;
+    }
 }

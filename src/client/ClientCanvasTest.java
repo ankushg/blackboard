@@ -1,5 +1,7 @@
 package client;
 
+import org.junit.Test;
+
 /**
  * This class contains the testing strategy used to ensure that ClientCanvas works correctly
  * @author jlmart88
@@ -23,5 +25,11 @@ public class ClientCanvasTest {
 	 * - Changing boards clears your board and appropriately updates the board with the current state 
 	 * 		of the new board
 	 * 
+	 *
 	 */
+    @Test
+    public void clientCanvasTest(){
+        assert true;
+    }
+
 }
