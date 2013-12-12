@@ -232,7 +232,7 @@ public class ClientInfoPanel extends JPanel{
         	    	if(message.startsWith(ClientGUI.CURRENT_BOARDS)) {
             			String[] boards = message.split(" ");
             			for (int i = 1; i < boards.length; i++) {
-            			    if(!boardListModel.contains(boards[i]) && boards[i]!=" " && boards[i]!=""){
+            			    if(!boardListModel.contains(boards[i]) && !boards[i].equals(" ") && !boards[i].equals("")){
             			        boardListModel.addElement(boards[i]);
             			    }
             			}
