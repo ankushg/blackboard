@@ -120,7 +120,6 @@ public class ClientGUI extends JFrame {
 						}
 					}
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} finally {
 
@@ -201,14 +200,15 @@ public class ClientGUI extends JFrame {
 							w = new PrintWriter(socket.getOutputStream(), true);
 							r = new BufferedReader(new InputStreamReader(
 									socket.getInputStream()));
-						} catch (IOException e1) {
+						} catch (IOException | NumberFormatException e1) {
 							loginSuccessful = false;
 							e1.printStackTrace();
 							JOptionPane.showMessageDialog(dialog,
 								    "Login failed, please try again.", 
 								    "Error",
 								    JOptionPane.ERROR_MESSAGE);
-						} finally {
+						}
+			        	finally {
 							if (loginSuccessful) dialog.setVisible(false);
 						}
 			        }
