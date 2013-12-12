@@ -26,7 +26,6 @@ public class ClientCanvasTest {
 	 * 		of the new board
 	 * 
 	 *
-	 * TODO: test here
 	 */
     @Test
     public void clientCanvasTest(){

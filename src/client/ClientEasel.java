@@ -33,8 +33,6 @@ import javax.swing.SwingUtilities;
  * 		receiving multiple messages quickly
  * 
  * 
- * TODO: Change interface to use icons instead of text
- * TODO: Make interface more user friendly
  * 
  * 
  */
