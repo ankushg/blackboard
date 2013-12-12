@@ -1,5 +1,7 @@
 package client;
 
+import org.junit.Test;
+
 /**
  * This class contains the testing strategy used to ensure that ClientGUI works correctly
  * @author kevinwen
@@ -21,4 +23,9 @@ public class ClientGUITest {
  	 * order due to separate manual testings, it is sufficient to assume that the message passing in ClientGUI is error-free.
 	 * 
 	 */
+    
+    @Test
+    public void clientGUITest(){
+        assert true;
+    }
 }
