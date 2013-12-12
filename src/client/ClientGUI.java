@@ -96,7 +96,7 @@ public class ClientGUI extends JFrame {
 							.readLine()) {
 
 						// log incoming messages
-						System.out.println("Received: "+line);
+						//System.out.println("Received: "+line);
 
 						for (String drawingMessage : DrawingOperationProtocol.DRAWING_MESSAGE_LIST) {
 							
@@ -244,7 +244,7 @@ public class ClientGUI extends JFrame {
 	 */
 	public synchronized void sendMessage(String output) {
 		// log Outgoing messages
-		System.out.println("Sent: "+output);
+		//System.out.println("Sent: "+output);
 		w.println(output);
 	}
 	
