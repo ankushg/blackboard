@@ -21,7 +21,7 @@ import javax.swing.SwingUtilities;
 
 /**
  * ClientEasel represents the sub-GUI surrounding a ClientCanvas, which 
- * allows drawing surface that allows the user to draw
+ * has a drawing surface that allows the user to draw
  * on it using tools such as freehand, shapes, etc. and allows the
  * user to erase as well. The canvas communicates with a WhiteboardServer
  * to allow collaboration on a whiteboard among multiple users
