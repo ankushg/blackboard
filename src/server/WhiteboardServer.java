@@ -317,10 +317,11 @@ public class WhiteboardServer {
         synchronized (client) {
             WhiteboardThread thread = getThread(client);
             assert thread != null;
+            assert newBoard.length() > 0;
             
             String oldBoard = client.getCurrentBoardId();
             
-            if (!oldBoard.equals(newBoard)){
+            if (!oldBoard.equals(newBoard) && newBoard.length() > 0){
 	
 	            // create board if it doesn't exist. synchronized on boards in case
 	            // multiple users join the same board at the same time
