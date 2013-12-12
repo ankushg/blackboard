@@ -16,7 +16,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Tests for WhiteboardServer
+ * Tests for WhiteboardServer. They use network sockets, so didit cannot run
+ * them.
+ * 
+ * @category no_didit
  */
 public class WhiteboardServerTest {
 
@@ -29,6 +32,7 @@ public class WhiteboardServerTest {
      * @throws IOException
      * @throws InterruptedException
      */
+
     @Test(timeout = 10000)
     public void testFunctions() throws IOException, InterruptedException {
         TestUtil.startServer(true);
